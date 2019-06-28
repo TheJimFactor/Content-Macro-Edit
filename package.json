@@ -1,0 +1,23 @@
+{
+  "name": "zenmacrotools",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "handlebars": "^4.1.0",
+    "hapi": "^18.1.0",
+    "hapi-cors-headers": "^1.0.3",
+    "hapi-pino": "^5.4.1",
+    "inert": "^5.1.2",
+    "knex": "^0.16.3",
+    "node-fetch": "^2.3.0",
+    "pug": "^2.0.3",
+    "vision": "^5.4.4"
+  }
+}
