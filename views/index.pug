@@ -1,0 +1,112 @@
+html
+  head
+    meta(charset="utf-8")
+    link(rel='stylesheet', href='https://assets.zendesk.com/apps/sdk-assets/css/2/zendesk_garden.css', type='text/css')
+
+    script(src='https://cdn.jsdelivr.net/g/lodash@4.3.0,handlebarsjs@4.0.5,jquery@2.2.0,momentjs@2.9.0,bootstrap@2.3.2')
+    script(src='https://cdn.jsdelivr.net/bluebird/latest/bluebird.min.js')
+    // link(rel='stylesheet', href='/js/jqueryui/jquery-ui.min.css')
+    link(rel='stylesheet', href='/js/jquery-ui.min.css')
+    link(rel='stylesheet', href='/css/zendeskgrid.css')
+    link(rel='stylesheet', href='/css/zendeskextra.css')
+    link(rel='stylesheet', href='/css/jquery.typeahead.min.css')
+    script(src='/js/jquery.typeahead.min.js')
+    style.
+      body{
+        padding-left:20px;
+      }
+      input{
+        padding-left:15px;
+      }
+      .td-vert{
+        vertical-align:middle;
+      }
+      .width-300{
+        max-width:300;
+      }
+      .standardButton{
+        margin-top:15px;
+      }
+
+
+      .c-table__row__cell--min{
+        width:1.5em;
+      }
+
+      .chk-spacer{
+        display: inline-block:
+        width:100px;
+      }
+
+      .c-tag{
+        display:inline-flex;
+        flex-wrap:nowrap;
+        align-items:center;
+        transition:box-shadow .1s ease-in-out;
+        border:0;
+        border-radius:2px;
+        background-color:#e9ebed;
+        padding:0 8px;
+        max-width:100%;
+        height:20px;
+        overflow:hidden;
+        line-height:1.66667;
+        font-size:12px;
+        font-weight:600;
+      }
+
+      .groupTag{
+        position: relative;
+        margin-right: 5px;
+        box-shadow: 0 0 0 2px #c5d3e0;
+      }
+  
+      .closeTag:before{
+        content:'x'
+      }
+
+      .closeTag{
+        position: absolute;
+        top: -.5em;
+        right: 0;
+        cursor: pointer;
+      }
+
+      .c-txt__input.is-disabled,.c-txt__input[disabled]{
+        border-color:#e9ebed;
+        box-shadow:none;
+        background-color:#f8f9f9;
+        cursor:default;
+        color:#c2c8cc;
+      }
+      .fakeInput{
+        transition: border-color .25s ease-in-out,box-shadow .1s ease-in-out,background-color .25s ease-in-out,color .25s ease-in-out;
+        outline: none;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: #fff;
+        padding: .71429em 1.14286em;
+        width: 100%;
+        min-height: 40px;
+        box-sizing: border-box;
+        vertical-align: middle;
+        line-height: 1.28571;
+        color: #777;
+        font-family: inherit;
+        font-size: 14px;
+      }
+      .condensed-input{
+        border:0px;
+      }
+
+      #groupTagList{
+        display:inline;
+      }
+
+      .quickInline{
+        display:inline;
+      }
+
+body
+  script(src='https://assets.zendesk.com/apps/sdk/2.0/zaf_sdk.js', type='text/javascript')
+  block content
