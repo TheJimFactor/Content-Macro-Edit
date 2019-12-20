@@ -11,7 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "csv-parser": "^2.3.2",
-    "handlebars": "^4.1.0",
+    "handlebars": "^4.1.2",
     "hapi": "^18.1.0",
     "hapi-cors-headers": "^1.0.3",
     "hapi-pino": "^5.4.1",
