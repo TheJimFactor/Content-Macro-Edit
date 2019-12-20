@@ -29,6 +29,14 @@ block content
 
       // macro tools
       div(class='container-fluid')
+        // div(class='row')
+        //   input(
+        //     class="c-chk__input"
+        //     id="tgl-0" 
+        //     type="checkbox")
+        //   label(
+        //     class="c-chk__label c-chk__label--toggle" 
+        //     for="tgl-0").c-chk__label.c-chk__label--toggle
         div(class='row')
           // form(class='width-300')
           div(class='col-md-4')
@@ -39,6 +47,7 @@ block content
 
               option Choose an Action
               option Title
+              option Description
               option Subject
               option Brand
               option Status
@@ -52,6 +61,7 @@ block content
               option Add CC
               option Comment
               option Comment Mode
+              option Active
           // label(class='c-txt__label',
           //   for='actionType') Find a macro that has
           div(class='col-md-4')
@@ -68,8 +78,10 @@ block content
                 id="checkCaseSensitive", 
                 type="checkbox")
               label(class="c-chk__label is-hidden", 
+                id="checkSensitiveWrapperLabel",
                 for="checkCaseSensitive") Case Sensitive
             // span(class='chk-spacer')
+
 
 
         div(class='row')
@@ -103,6 +115,8 @@ block content
             select(id='replaceType',
               class='c-txt__input c-txt__input--select')
               option Choose an Action
+              option Title
+              option Description
               option Subject
               option Group Permission
               option Status
@@ -117,6 +131,7 @@ block content
               option Add CC
               option Comment
               option Comment Mode
+              option Active
           div(class='col-md-4')
             label(class='c-txt__label') Replace Value
             select(id='replaceSelectValue',
@@ -130,6 +145,7 @@ block content
                 id="checkReplaceWord", 
                 type="checkbox")
               label(class="c-chk__label is-hidden", 
+                id="checkReplaceWordWrapperLabel",
                 for="checkReplaceWord") Replace Word
         div(class='row',
           id='replaceWordWrapper')
@@ -169,6 +185,22 @@ block content
               value='Update',
               id='updateButton',
               class='standardButton c-btn c-btn--primary')
+          div(class='col-md-4')
+            input(type='button',
+              value='Upload Macros CSV',
+              id='uploadMacroCSV',
+              class='standardButton c-btn c-btn--primary u-bg-lime-M400 u-fg-white')
+            input(type='button',
+              value='',
+              id='uploadMacroCSVStatus',
+              class='standardButton c-btn c-btn--primary u-bg-white u-fg-black blankButton')
+            input(type='file',
+              id='macroCSVFile',
+              style="display:none")
+        div(class='row')
+          div(class='col-md-4')
+          div(class='col-md-4')
+            a(href='https://support.zendesk.com/hc/en-us/community/posts/115006131447-How-to-export-Zendesk-macros-into-a-spreadsheet' target='_blank') Guide to get a properly formed CSV file for upload
         // h2 debug/testing text below
         // div(id='macroListWrapper')
         //   // a deal
@@ -244,7 +276,9 @@ block content
               input(class="c-chk__input", 
                 id="checkDynamicCaseSensitive", 
                 type="checkbox")
-              label(class="c-chk__label is-hidden", 
+              // label(class="c-chk__label is-hidden", 
+              label(class="c-chk__label", 
+                id="checkDynamicSensitiveWrapperLabel",
                 for="checkDynamicCaseSensitive") Case Sensitive
             // span(class='chk-spacer')
 
@@ -291,7 +325,7 @@ block content
               input(class="c-chk__input", 
                 id="checkDynamicReplaceWord", 
                 type="checkbox")
-              label(class="c-chk__label is-hidden", 
+              label(class="c-chk__label", 
                 for="checkReplaceWord") Replace Word
         div(class='row',
           id='replaceDynamicWordWrapper')
@@ -327,7 +361,9 @@ block content
   script(type='text/javascript').
     // Initialise the Zendesk JavaScript API client
     // const tempTag = jQuery('<div/>').attr('class', 'c-tag c-tag--sm c-tag--light c-tag--pill tagW')
-    console.log("starting javascript in app")
+    const debug = true
+
+    debug && console.log("starting javascript in app")
     var client = ZAFClient.init();
     client.invoke('resize', { width: '100%', height: '700px' });
 
@@ -337,33 +373,51 @@ block content
       jQuery('#ticketType').text(data['ticket.type'])
     })
 
-    // hide actionQueryText and just show select by default
-    console.log("getting requester")
 
-    console.log("getting all macros")
+
+    // hide actionQueryText and just show select by default
+    debug && console.log("getting requester")
+
+    debug && console.log("getting all macros")
     // getAllMacros()
     let allMacros = []
     let allDynamicItems = []
     let allGroups = []
+    let allCustomTicketFields = []
     getAllMacrosAPI()
     .then(data=>{
-      console.log("echoing out macros")
+      debug && console.log("echoing out macros")
       addMacros(data.macros)
       allMacros = data.macros
     })
     getAllDynamicContentAPI()
     .then(data=>{
-      console.log("echoing out dynamic content: ", data)
+      debug && console.log("echoing out dynamic content: ", data)
       allDynamicItems = data.items
     })
-    console.log("getting all groups")
+    getAllTicketFields()
+    .then(data=>{
+      debug && console.log("echoing out tickets content: ", data)
+      data.ticket_fields.forEach(item=>{
+        if(item.type == 'checkbox' || item.custom_field_options)
+          allCustomTicketFields.push(item)
+      })
+      debug && console.log("all custom ticket fields: ", allCustomTicketFields)
+
+      // add custom ticket field choices if any
+      if(allCustomTicketFields.length > 0){
+        addTypeChoices()
+        updateLookupWithCustomFields()
+      }
+    })
+    debug && console.log("getting all groups")
     getGroups()
     .then(data=>{
-      console.log("got the data from groups API")
-      console.log(data)
+      debug && console.log("got the data from groups API")
+      debug && console.log(data)
       allGroups = data.groups
       // data.groups.forEach(group=>{
-      //   console.log("adding group: ", group)
+      //   debug && console.log("adding group: ", group)
       //   allGroups.push(group)
       // })
       // allGroups = [{name:'group 1', id:2}, {name:'group 2', id:3}]
@@ -372,19 +426,18 @@ block content
       // displayItems(data.groups, 'name', "#groups")
       // createDropDown(data.groups, 'name', '#groupSelect')
     })
-    // console.log("calling findGroups")
+    // debug && console.log("calling findGroups")
     // findGroups(360000820973)
 
-    const debug = 0
     const statuses = []
 
     client.on('ticket.requester.id.changed', function(e){
       // refreshZenApp()
     })
-    console.log("getting context")
+    debug && console.log("getting context")
     let subdomain = null
     client.context().then(context=>{
-      console.log("context:", context)
+      debug && console.log("context:", context)
       subdomain = context.account.subdomain
     })
 
@@ -397,7 +450,7 @@ block content
       // get the agent user
       client.get('currentUser')
       .then(currentUserData=>{
-        console.log("Current user data: ", currentUserData)
+        debug && console.log("Current user data: ", currentUserData)
         agentUser = currentUserData.currentUser
       })
     }
@@ -406,11 +459,11 @@ block content
     function getAllMacros(){
       client.get('macros')
       .then(macroData=>{
-        console.log("MacroData: ", macroData)
+        debug && console.log("MacroData: ", macroData)
         addMacros(macroData.macros)
       })
       .catch(err=>{
-        console.log("error getting macros: ", err)
+        debug && console.log("error getting macros: ", err)
       })
     }
 
@@ -426,8 +479,8 @@ block content
         }
         client.request(macrosReq)
         .then(data=>{
-          console.log("got the data from macros API")
-          console.log(data)
+          debug && console.log("got the data from macros API")
+          debug && console.log(data)
           resolve(data)
         })
       })
@@ -435,19 +488,36 @@ block content
 
     // adds macros to the DOM
     function addMacros(macros){
-      console.log("addMacros:", macros)
+      debug && console.log("addMacros:", macros)
       const macroElem = jQuery('#macros')
       macros.forEach(macro=>{
-        console.log("appending macros")
+        debug && console.log("appending macros")
         const tempElem = jQuery('<h3 />').text(macro.title)
         // macroElem.append('<h3>test stuff</h3>')
         macroElem.append(tempElem)
       })
     }
 
+    // TODO: get all ticket fields
+    function getAllTicketFields(){
+      return new Promise((resolve, reject)=>{
+        const ticketsReq = {
+            url: '/api/v2/ticket_fields.json',
+            type: 'GET',
+            dataType: 'json'
+        }
+        client.request(ticketsReq)
+        .then(data=>{
+          debug && console.log("got the data from tickets API")
+          debug && console.log(data)
+          resolve(data)
+        })
+      })
+    }
+
     function getGroups(){
       return new Promise((resolve, reject)=>{
-        console.log("fetching groups")
+        debug && console.log("fetching groups")
         // https://developer.zendesk.com/apps/docs/developer-guide/using_sdk#working-with-requests
         const groupsReq = {
             url: '/api/v2/groups.json',
@@ -456,7 +526,7 @@ block content
         }
         client.request(groupsReq)
         .then(data=>{
-          console.log("returning getGroups() data")
+          debug && console.log("returning getGroups() data")
           resolve(data)
         })
       })
@@ -468,17 +538,17 @@ block content
     }
 
     function displayItems(items, field, elemID, clear){
-      console.log("inside display appending to:", elemID)
+      debug && console.log("inside display appending to:", elemID)
       const elemWrapper = jQuery(elemID)
       // clear all previous options
       if(clear){
         elemWrapper.html('')
       }
       items.forEach(item=>{
-        console.log("appending item: ", item)
+        debug && console.log("appending item: ", item)
         const tempElem = jQuery('<h3 />').text(item[field])
         // macroElem.append('<h3>test stuff</h3>')
-        console.log("tempElem in displayItems: ", tempElem)
+        debug && console.log("tempElem in displayItems: ", tempElem)
         elemWrapper.append(tempElem)
       })
     }
@@ -486,46 +556,53 @@ block content
 
 
     // partially disabled for now, use generic filter
+    // TODO: new flow to add custom fields
     function findGroups(id){
-      console.log("calling getMacros for group:", id)
+
+      debug && console.log("calling getMacros for group:", id)
       getAllMacrosAPI()
       .then(data=>{
-        console.log("---Unfiltered macros: ", data.macros)
+        const customFields = []
+        debug && console.log("---Unfiltered macros: ", data.macros)
         filteredMacros = []
         data.macros.forEach(macro=>{
-          console.log('macro: ', macro)
+          debug && console.log('macro: ', macro)
           macro.actions.forEach(action=>{
-            console.log("macro action:", action)
+            debug && console.log("macro action:", action)
             if(action.field == 'group_id'){
-              console.log("comparing: " + action.value + " to: " + id)
+              debug && console.log("comparing: " + action.value + " to: " + id)
               if(parseInt(action.value) == id){
-                console.log("FOUDN GROUP CORRECT ID")
+                debug && console.log("FOUDN GROUP CORRECT ID")
                 filteredMacros.push(macro)
               }else{
-                console.log("NO ID MATCH")
+                debug && console.log("NO ID MATCH")
               }
             }
           })
         })
-        // console.log("going to display macros")
+        // debug && console.log("going to display macros")
         // displayItems(filteredMacros, 'title', '#results')
+        
+        // get all custom fields
+        
+
         
       })
     }
 
     function createDropDown(items, titleKey, selectElem){
-      console.log(`Adding to ${selectElem}`, items)
+      debug && console.log(`Adding to ${selectElem}`, items)
       selectElem = jQuery(selectElem)
-      console.log(`Jqueried Adding: ${items} to `, selectElem)
+      debug && console.log(`Jqueried Adding: ${items} to `, selectElem)
       // selectElem.append('<option>Test</option>')
       items.forEach(item=>{
-        // console.log("titleKey: ", titleKey)
-        // console.log("id: ", item.id)
-        // console.log("<option value='"+item.id+"'>"+item[titleKey]+"</option> ")
+        // debug && console.log("titleKey: ", titleKey)
+        // debug && console.log("id: ", item.id)
+        // debug && console.log("<option value='"+item.id+"'>"+item[titleKey]+"</option> ")
         selectElem.append("<option value='"+item.id+"'>"+item[titleKey]+"</option> ")
-        console.log("appended option")
+        debug && console.log("appended option")
       })
-      console.log("done adding items to select")
+      debug && console.log("done adding items to select")
     }
 
     function genericAPIReq(endpoint, filter){
@@ -537,19 +614,19 @@ block content
         }
         if(filter){
           APIReq.url += '?'+filter
-          console.log(`Filter was `, filter)
+          debug && console.log(`Filter was `, filter)
         }else{
-          console.log(`Filter was empty`)
+          debug && console.log(`Filter was empty`)
         }
-        console.log("api request to: ", APIReq.url)
+        debug && console.log("api request to: ", APIReq.url)
         client.request(APIReq)
         .then(data=>{
-          console.log("got the data from  API: ", endpoint)
-          console.log(data)
+          debug && console.log("got the data from  API: ", endpoint)
+          debug && console.log(data)
           resolve(data)
         })
         .catch(err=>{
-          console.log("API Request Error")
+          debug && console.log("API Request Error")
           reject(err)
         })
       })
@@ -560,7 +637,7 @@ block content
         // const theData = data
         const jsonUploadData = JSON.stringify(data)
         // const jsonUploadData = data
-        console.log("json data: ", jsonUploadData)
+        debug && console.log("json data: ", jsonUploadData)
         // specifying application/json is required
         const APIReq = {
             url: '/api/v2/'+endpoint+'.json',
@@ -571,52 +648,102 @@ block content
             httpCompleteResponse:true 
         }
         // no filter for PUT atm
-        console.log("api PUT request to: ", APIReq.url)
+        debug && console.log("api PUT request to: ", APIReq.url)
         client.request(APIReq)
         .then(respData=>{
-          console.log("got the data from  API: ", endpoint)
-          console.log(respData)
+          debug && console.log("got the data from  API: ", endpoint)
+          debug && console.log(respData)
           const parsedData = JSON.parse(respData.responseText)
-          console.log("parsed data: ", parsedData)
+          debug && console.log("parsed data: ", parsedData)
           // append macro so its accessible on cb
           respData.macro = data.macro
           resolve(respData)
         })
         .catch(err=>{
-          console.log("PUT API Request Error", err)
+          debug && console.log("PUT API Request Error", err)
           reject(err)
         })
       })
     }
 
+    function genericAPIReqPost(endpoint, data){
+      return new Promise((resolve, reject)=>{
+        // const theData = data
+        const jsonUploadData = JSON.stringify(data)
+        // const jsonUploadData = data
+        debug && console.log("json data: ", jsonUploadData)
+        // specifying application/json is required
+        const APIReq = {
+            url: '/api/v2/'+endpoint+'.json',
+            type: 'POST',
+            dataType: 'json',
+            data:jsonUploadData,
+            contentType:'application/json',
+            httpCompleteResponse:true 
+        }
+        // no filter for POST atm
+        debug && console.log("api POST request to: ", APIReq.url)
+        client.request(APIReq)
+        .then(respData=>{
+          debug && console.log("got the data from  API: ", endpoint)
+          debug && console.log(respData)
+          const parsedData = JSON.parse(respData.responseText)
+          debug && console.log("parsed data: ", parsedData)
+          // append macro so its accessible on cb
+          respData.macro = data.macro
+          resolve(respData)
+        })
+        .catch(err=>{
+          debug && console.log("POST API Request Error", err)
+          reject(err)
+        })
+      })
+    }
+
+    // TODO: update to add support for upsert, inserts if macro.id not set, genericAPIReq
     function sendManyAPIRequests(macros){
       // meter send macros
       const apiRequests = []
-      console.log("attempting to send multiple api requests for: ", macros)
+      debug && console.log("attempting to send multiple api requests for: ", macros)
       macros.forEach(macro=>{
-        const requestURL = 'macros/'+macro.id        
-        // macro.title += " - via API 3" // debug testing
-        const request = genericAPIReqPut(requestURL, {macro:macro})
+        let requestURL = ''
+        let request = ''
+        // PUT for update, POST for insert 
+        if(macro.id){
+          requestURL = 'macros/'+macro.id        
+          // macro.title += " - via API 3" // debug testing
+          request = genericAPIReqPut(requestURL, {macro:macro})
+        }else{
+          requestURL = 'macros'        
+          // macro.title += " - via API 3" // debug testing
+          request = genericAPIReqPost(requestURL, {macro:macro})
+        }
         apiRequests.push(request)
         // test bluebird
       })
-      console.log("attempting to Promise.map apiRequests: ", apiRequests)
+      debug && console.log("attempting to Promise.map apiRequests: ", apiRequests)
       // use Promise.map for concurrency http://bluebirdjs.com/docs/api/promise.map.html
       Promise.map(apiRequests, function(data){
-        console.log("Inside of bluebird, returned data: ", data)
+        debug && console.log("Inside of bluebird, returned data: ", data)
         // need to mark the item as updated
-        console.log("updating displayMacros")
-        console.log("original macro was: ", data.macro)
+        // debug && console.log("updating displayMacros")
+        debug && console.log("updating displayMacros")
+        debug && console.log("original macro was: ", data.macro)
         updateMacroStatusNew(data.macro, null, 'success')
         // displayItems(macros, 'title', '#results', true)
 
       }, {concurrency:1})
       .then(()=>{
-        console.log("done updating macros")
+        debug && console.log("done updating macros")
         getAllMacrosAPI()
         .then(refreshedMacros=>{
-          console.log("refreshed macros")
+          debug && console.log("refreshed macros")
           allMacros = refreshedMacros.macros
+          // update csv status if it was a csv upload event - can promisify this function and bring up one level
+          if(csvUploadDirty){
+            uploadMacroCSVStatus.val('Uploaded')
+            csvUploadDirty = false
+          }
         })
       })
     }
@@ -624,7 +751,9 @@ block content
 
     const replaceWordWrapper = $('#replaceWordWrapper')
     const checkSensitiveWrapper = $('#checkSensitiveWrapper')
+    const checkSensitiveWrapperLabel = $('#checkSensitiveWrapperLabel')
     const checkReplaceWordWrapper = $('#checkReplaceWordWrapper')
+    const checkReplaceWordWrapperLabel = $('#checkReplaceWordWrapperLabel')
     const groupTagWrapper = $('#groupTagWrapper')
 
     const groupTagList = jQuery('#groupTagList')
@@ -635,6 +764,9 @@ block content
     const checkCaseSensitive = $('#checkCaseSensitive')
     const checkReplaceWord = $('#checkReplaceWord')
     const updateButton = $('#updateButton')
+    const uploadMacroCSV = $('#uploadMacroCSV')
+    const uploadMacroCSVStatus = $('#uploadMacroCSVStatus')
+    const macroCSVFile = $('#macroCSVFile')
     const checkAll = $('#check-all')
     const replaceType = jQuery('#replaceType')
     const replaceSelectValue = jQuery('#replaceSelectValue')
@@ -644,7 +776,9 @@ block content
     const prefixID = 'macro-result-'
     let isCaseSensitive = false
     let isReplaceWord = false
+    let csvUploadDirty = false
     let currentLookup = null
+    let replaceLookup = null
     let resultMacros = []
 
     actionQueryText.hide()
@@ -656,11 +790,12 @@ block content
     replaceWordWrapper.hide()
 
     const lookups = {
-      Title: {api:'text', id:'title'},
+      Title: {api:'text', id:'title', meta:true, metaField:'title'},
+      'Description':{api:'text', id:'description', meta:true, metaField:'description'},
       Brand: {api:'brands', title:'name', id:'brand_id'},
       Form: {api:'ticket_forms', title:'name', id:'ticket_form_id'},
-      Group: {api:'groups', title:'name', id:'group_id'},
-      'Group Permission': {api:'hardcoded', title:'name', id:'group_permissions'},
+      Group: {api:'groups', title:'name', id:'group_id', meta:true},
+      'Group Permission': {api:'hardcoded', title:'name', id:'group_permissions', meta:true},
       Assignee: {api:'users', title:'name', filter:'role[]=admin&role[]=agent', id:'assignee_id'},
       'Add CC': {api:'users', title:'name', filter:'role[]=admin&role[]=agent', id:'cc'},
       'Subject':{api:'text', id:'subject'},
@@ -671,14 +806,15 @@ block content
       'Comment Mode':{api:'hardcoded', id:'comment_mode_is_public'},
       'Type':{api:'hardcoded', id:'type'},
       'Status':{api:'hardcoded', id:'status'},
+      'Active':{api:'hardcoded', id:'active', meta:true, metaField:'active'},
     }
     // listeners
     // action choice - pull down related action stuff for action choice
     actionType.change(function(){
-      // console.log("action type choice: ", jQuery(this).value())
-      console.log("action type choice: ", $(this).val())
-      console.log("action type choice: ", $(this).val())
-      // console.log("action type choice: ", $(this).value())
+      // debug && console.log("action type choice: ", jQuery(this).value())
+      debug && console.log("action type choice: ", $(this).val())
+      debug && console.log("action type choice: ", $(this).val())
+      // debug && console.log("action type choice: ", $(this).value())
       // option Choose an Action
       // option Subject - just text
       // option Priority - urgent high normal low
@@ -704,11 +840,11 @@ block content
       macroTBody.html('')
 
 
-      console.log("actionType currentLookup: ", currentLookup)
+      debug && console.log("actionType currentLookup: ", currentLookup)
 
       
       let firstVal = null
-      console.log("making request to endpoint: ", endpoint, lookup.filter)
+      debug && console.log("making request to endpoint: ", endpoint, lookup.filter)
       updateMatchTH()
       if(endpoint == 'text'){
         // reset query select and hide it and show query text
@@ -717,12 +853,33 @@ block content
         const actionQueryText = $('#actionQueryText')
         actionQueryText.show()
         checkSensitiveWrapper.show()
+        checkSensitiveWrapperLabel.removeClass('is-hidden')
+      }else if(endpoint == 'custom'){
+        // DRY maybe functionalize if repeated often exactly
+        actionQuerySelect.show()
+        actionQueryText.hide()
+        checkSensitiveWrapper.hide()
+        checkSensitiveWrapperLabel.addClass('is-hidden')
+        actionQuerySelect.find('option').remove()
+        debug && console.log("custom field lookup: ", lookup)
+
+        if(lookup.type == 'checkbox'){
+          actionQuerySelect.append('<option>true</option>')
+          actionQuerySelect.append('<option>false</option>')
+        }
+        else{
+          lookup.custom_field_options.forEach(item=>{
+            actionQuerySelect.append(`<option>${item.value}</option>`)
+          })
+        }
+        actionQuerySelect.val($("#actionQueryValue option:first").val()).change();
       }else if(endpoint == 'hardcoded'){
         actionQuerySelect.show()
         actionQueryText.hide()
         checkSensitiveWrapper.hide()
+        checkSensitiveWrapperLabel.addClass('is-hidden')
         actionQuerySelect.find('option').remove()
-        console.log("doing a switch on lookup: ", lookupKey)
+        debug && console.log("doing a switch on lookup: ", lookupKey)
         switch(lookupKey){
           case 'Priority':
             actionQuerySelect.append('<option>urgent</option>')
@@ -749,6 +906,10 @@ block content
             actionQuerySelect.append('<option>task</option>')
             firstVal = 'question'
             break
+          case 'Active':
+            actionQuerySelect.append('<option value="true">True</option>')
+            actionQuerySelect.append('<option value="false">False</option>')
+            break
         }
         // actionQuerySelect.val(firstVal).change()
 
@@ -757,27 +918,27 @@ block content
         actionQuerySelect.val($("#actionQueryValue option:first").val()).change();
 
 
-        console.log("appending to actionQuerySelect")
+        debug && console.log("appending to actionQuerySelect")
       }else{
         genericAPIReq(endpoint, lookup.filter)
         .then(data=>{
-          console.log("data from api request: ", endpoint)
+          debug && console.log("data from api request: ", endpoint)
           const dataList = data[lookup.api]
-          console.log("data to loop: ", dataList)
+          debug && console.log("data to loop: ", dataList)
           actionQuerySelect.show()
           actionQueryText.hide()
           checkSensitiveWrapper.hide()
-          console.log("resetting actionQueryValue options")
+          debug && console.log("resetting actionQueryValue options")
           actionQuerySelect.find('option').remove()
           dataList.forEach(item=>{
-            console.log("Info: in data list foreach")
+            debug && console.log("Info: in data list foreach")
             if(!firstVal){
               firstVal = item.id
-              console.log("firstVal set to: ", firstVal)
+              debug && console.log("firstVal set to: ", firstVal)
             }
             // add it to the choice select
             actionQuerySelect.append('<option value='+item.id+'>'+item[lookup.title]+'</option>')
-            console.log("Info: end of data list foreach")
+            debug && console.log("Info: end of data list foreach")
           })
           // actionQuerySelect.val(firstVal).change()
           actionQuerySelect.val($("#actionQueryValue option:first").val()).change();
@@ -794,13 +955,14 @@ block content
       groupTagWrapper.hide()
 
 
-      console.log("replaceType chosen, populating replacement values")
+      debug && console.log("replaceType chosen, populating replacement values")
       lookupKey = $(this).val()
       lookup = lookups[$(this).val()]
+      replaceLookup = lookup
       // currentLookup = $(this).val()
       const endpoint = lookup.api
-      console.log("making request to endpoint: ", endpoint, lookup.filter)
-      // console.log("currentLookup = ", currentLookup)
+      debug && console.log("making request to endpoint: ", endpoint, lookup.filter)
+      // debug && console.log("currentLookup = ", currentLookup)
       if(endpoint == 'text'){
         // reset query select and hide it and show query text
         replaceSelectValue.hide()
@@ -808,16 +970,39 @@ block content
         replaceText.show()
         disableReplaceText(false)
         checkReplaceWordWrapper.show()
-      }else if(endpoint == 'hardcoded'){
+        checkReplaceWordWrapperLabel.removeClass('is-hidden')
+      }else if(endpoint == 'custom'){
         replaceSelectValue.show()
         replaceText.hide()
         checkReplaceWordWrapper.hide()
+        checkReplaceWordWrapperLabel.addClass('is-hidden')
         replaceWordWrapper.hide()
         isReplaceWord = false // disable replaceword
         // replaceText.prop('disable', false)
         disableReplaceText(false)
         replaceSelectValue.find('option').remove()
-        console.log("doing a switch on lookup: ", lookupKey)
+
+        if(lookup.type == 'checkbox'){
+          replaceSelectValue.append('<option>true</option>')
+          replaceSelectValue.append('<option>false</option>')
+        }
+        else{
+          lookup.custom_field_options.forEach(item=>{
+            replaceSelectValue.append(`<option>${item.value}</option>`)
+          })
+        }
+
+      }else if(endpoint == 'hardcoded'){
+        replaceSelectValue.show()
+        replaceText.hide()
+        checkReplaceWordWrapper.hide()
+        checkReplaceWordWrapperLabel.addClass('is-hidden')
+        replaceWordWrapper.hide()
+        isReplaceWord = false // disable replaceword
+        // replaceText.prop('disable', false)
+        disableReplaceText(false)
+        replaceSelectValue.find('option').remove()
+        debug && console.log("doing a switch on lookup: ", lookupKey)
         // DRY this needs to be functionalized
         switch(lookupKey){
           case 'Group Permission':
@@ -845,72 +1030,101 @@ block content
             replaceSelectValue.append('<option>problem</option>')
             replaceSelectValue.append('<option>task</option>')
             break
+          case 'Active':
+            replaceSelectValue.append('<option value="true">True</option>')
+            replaceSelectValue.append('<option value="false">False</option>')
+            break
         }
-        console.log("appending to replaceSelectValue")
+        debug && console.log("appending to replaceSelectValue")
       }else{
         genericAPIReq(endpoint, lookup.filter)
         .then(data=>{
-          console.log("data from api request: ", endpoint)
+          debug && console.log("data from api request: ", endpoint)
           const dataList = data[lookup.api]
-          console.log("data to loop: ", dataList)
+          debug && console.log("data to loop: ", dataList)
           replaceSelectValue.show()
           replaceText.hide()
           checkReplaceWordWrapper.hide()
           replaceWordWrapper.hide()
           isReplaceWord = false // disable replaceword
           replaceText.prop('disable', false)
-          console.log("resetting replaceSelectValue options")
+          debug && console.log("resetting replaceSelectValue options")
           replaceSelectValue.find('option').remove()
           dataList.forEach(item=>{
-            console.log("Info: in data list foreach")
+            debug && console.log("Info: in data list foreach")
             // add it to the choice select
             replaceSelectValue.append('<option value='+item.id+'>'+item[lookup.title]+'</option>')
-            console.log("Info: end of data list foreach")
+            debug && console.log("Info: end of data list foreach")
           })
         })
       }
     })
 
+    // adds custom ticket fields
+    function addTypeChoices(){
+      debug && console.log("Adding custom ticket fields to drop down", allCustomTicketFields)
+      allCustomTicketFields.forEach(item=>{
+        debug && console.log("adding field: ", item.title)
+        actionType.append(`<option value='custom_fields_${item.id}'>Custom: ${item.title}</option>`)
+        replaceType.append(`<option value='custom_fields_${item.id}'>Custom: ${item.title}</option>`)
+      })
+    }
+
+              
+    function updateLookupWithCustomFields(){
+      allCustomTicketFields.forEach(item=>{
+        item.api = 'custom'
+        lookups['custom_fields_' + item.id] = item
+        lookups['custom_fields_' + item.id].id = 'custom_fields_'+item.id
+      })
+      debug && console.log("lookups updated: ", lookups)
+    }
+
     function filterMacros(key, value, isText){
-      console.log("------")
-      console.log("inside of filterMacros")
-      console.log(`Matches for key(field): ${key} with value ${value}`)
+      debug && console.log("------")
+      debug && console.log("inside of filterMacros")
+      debug && console.log(`Matches for key(field): ${key} with value ${value}`)
       const matchedMacros = []
       const tempMacros = allMacros.slice()
       tempMacros.forEach(macro=>{
         let match = false
-        if(key == 'title'){
-          if(macro.title.toLowerCase().indexOf(value) != -1){
-            console.log("this macro title matches: ", macro)
+        if(key == 'title' || key == 'description'){
+          if(macro[key] && macro[key].toLowerCase().indexOf(value) != -1){
+            debug && console.log(`this macro ${key} matches: `, macro)
             match = true
-            macro.matchedField = macro.title
+            macro.matchedField = macro[key]
+          }
+        }else if(key == 'active'){
+          if(String(macro.active) == value){
+            match = true
+            macro.matchedField = macro.description
           }
         }else{
           macro.actions.forEach(action=>{
-            // console.log(`comparing:${key} to ${action.field} to${action.value} to ${value}`)
+            // debug && console.log(`comparing:${key} to ${action.field} to${action.value} to ${value}`)
             if(isText){
               // value = value.toLowerCase() // used if no case-sensitive toggle
               // if(action.field == key && action.value.toLowerCase().indexOf(value) != -1){
               if(action.field == key && checkMatchStr(action.value, value)){
-                console.log("this action matches: ", action)
+                debug && console.log("this action matches: ", action)
                 match = true
                 macro.matchedField = action.value
               // }else if(key == 'comment_value_html' && action.value.toLowerCase().indexOf(value) != -1){
               }else if(action.field == 'comment_value' && key == 'comment_value_html' && checkMatchStr(action.value, value)){
                 // special case for comment_value and comment_value_html - this checks comment_value
-                console.log("this action matches: ", action)
+                debug && console.log("this action matches: ", action)
                 match = true
                 macro.matchedField = action.value
               }else{
-                // console.log("this action NO DOES NOT matches: ", action)
+                // debug && console.log("this action NO DOES NOT matches: ", action)
               }
             }else{
               if(action.field == key && action.value == value){
-                console.log("this action matches: ", action)
+                debug && console.log("this action matches: ", action)
                 match = true
                 macro.matchedField = action.value
               }else{
-                // console.log("this action NO DOES NOT matches: ", action)
+                // debug && console.log("this action NO DOES NOT matches: ", action)
               }
             }
           })
@@ -924,7 +1138,7 @@ block content
 
 
     function updateMacroStatusNew(macro, macros, status){
-      console.log("inside updateMacroStatus")
+      debug && console.log("inside updateMacroStatus")
       const prefixID = 'macro-result-'
       const statusImages = {
         'unsent':"https://img.icons8.com/color/16/000000/sort-right.png",
@@ -934,17 +1148,17 @@ block content
 
       if(macro){
         // find the macro line
-        console.log("updating status for macro: ", macro)
+        debug && console.log("updating status for macro: ", macro)
         const toUpdateDiv = $('#'+prefixID+macro.listPos)
-        console.log("going to update: ", toUpdateDiv)
+        debug && console.log("going to update: ", toUpdateDiv)
 
         // update the img with correct status image
         const tdToUpdate = $(toUpdateDiv.find('td')[0])
-        console.log("tdToUpdate", tdToUpdate)
+        debug && console.log("tdToUpdate", tdToUpdate)
         const statusImage = $(tdToUpdate.find('img')[0])
-        console.log("image to update", statusImage)
+        debug && console.log("image to update", statusImage)
         statusImage.attr('src', statusImages[status])
-        console.log("image to update", statusImage)
+        debug && console.log("image to update", statusImage)
         // macroStatusTD.append('<img src="https://img.icons8.com/color/16/000000/synchronize.png">')
         // const tempWrapper = $('<div />')
         // const tempElem = jQuery('<h3 />').text('Title: '+macro.title)
@@ -955,13 +1169,13 @@ block content
         // NOTE: currently this is initial only, does not support update
         // update all macro status usually for initial
         // reset #results
-        console.log("inside macros updateMacroStatus")
+        debug && console.log("inside macros updateMacroStatus")
         const macroTBody = $($('#macro-results').find('tbody')[0])
-        console.log("Should be the tbody, resetting it", macroTBody)
+        debug && console.log("Should be the tbody, resetting it", macroTBody)
         macroTBody.html('')
         macros.forEach(macro=>{
-          console.log("updating a macro result status at: ", macro.listPos)
-          console.log("updating a macro result status at: ", macro.title)
+          debug && console.log("updating a macro result status at: ", macro.listPos)
+          debug && console.log("updating a macro result status at: ", macro.title)
           const macroTR = $('<tr />')
 
 
@@ -992,7 +1206,7 @@ block content
 
 
           const checkLabel = $('<label />')
-          checkLabel.addClass('c-chk__label is-hidden')
+          checkLabel.addClass('c-chk__label is-hidden chk-offset')
           checkLabel.attr('for', 'macro-input-'+macro.listPos)
 
           const macroDescTD = $('<td />').html(macro.title)
@@ -1006,7 +1220,7 @@ block content
           const macroLinkTD = $('<td />').html('<a href="https://'+subdomain+'.zendesk.com/agent/admin/macros/'+macro.id+'" target="_blank">View Macro</a>')
           macroLinkTD.addClass('c-table__row__cell')
 
-          console.log("adding stuff to checkdiv")
+          debug && console.log("adding stuff to checkdiv")
           checkDiv.append(checkInput)
           checkDiv.append(checkLabel)
 
@@ -1029,7 +1243,7 @@ block content
           //   td(class="c-table__row__cell") filler cell text
 
 
-          console.log("adding stuff to macroTR")
+          debug && console.log("adding stuff to macroTR")
           macroTBody.append(macroTR)
         })
         // add all with an id of macro-result-i
@@ -1038,31 +1252,31 @@ block content
       }
     }
 
-    // console.log("running filterMacros")
+    // debug && console.log("running filterMacros")
     // filterMacros('test', 'one', true)
-    // console.log("running filterMacros")
+    // debug && console.log("running filterMacros")
 
     actionQuerySelect.change(function(event){
       // pull down from db then filter
       const selectedVal = actionQuerySelect.val()
-      console.log("selectedVal: ", selectedVal)
-      console.log("actionQuerySelect currentLookup: ", currentLookup)
+      debug && console.log("selectedVal: ", selectedVal)
+      debug && console.log("actionQuerySelect currentLookup: ", currentLookup)
       const tempLookupID = lookups[currentLookup].id
-      console.log("actionQuerySelect tempLookupID: ", tempLookupID)
+      debug && console.log("actionQuerySelect tempLookupID: ", tempLookupID)
       // const matchedMacros = filterMacros(lookups[currentLookup].id, selectedVal, false)
-      // console.log("selectedVal: ", selectedVal)
-      // console.log("matchedMacros: ", matchedMacros)
+      // debug && console.log("selectedVal: ", selectedVal)
+      // debug && console.log("matchedMacros: ", matchedMacros)
       // displayItems(matchedMacros, 'title', '#results', true)
       // resultMacros = filterMacros(currentLookup.toLowerCase(), selectedVal, true)
       resultMacros = filterMacros(tempLookupID, selectedVal, true)
-      console.log("filtered macros: ", resultMacros)
+      debug && console.log("filtered macros: ", resultMacros)
       for(i = 0; i < resultMacros.length; i++){
         resultMacros[i].listPos = i
         resultMacros[i].updateStatus = 'unsent'
       }
-      console.log("actionquery select calling updateMacroStatus")
+      debug && console.log("actionquery select calling updateMacroStatus")
       updateMacroStatusNew(null, resultMacros, 'unsent')
-      console.log("after updateMacroStatus")
+      debug && console.log("after updateMacroStatus")
     })
 
 
@@ -1073,55 +1287,55 @@ block content
       
       // pull down from db then filter based on text
       const selectedVal = actionQueryText.val()
-      console.log("selectedText: ", selectedVal)
-      console.log("actionQueryText currentLookup: ", currentLookup)
+      debug && console.log("selectedText: ", selectedVal)
+      debug && console.log("actionQueryText currentLookup: ", currentLookup)
       const tempLookupID = lookups[currentLookup].id
-      console.log("actionQuerySelect tempLookupID: ", tempLookupID)
+      debug && console.log("actionQuerySelect tempLookupID: ", tempLookupID)
       // resultMacros = filterMacros(currentLookup.toLowerCase(), selectedVal, true)
       resultMacros = filterMacros(tempLookupID, selectedVal, true)
-      console.log("filtered macros: ", resultMacros)
+      debug && console.log("filtered macros: ", resultMacros)
       for(i = 0; i < resultMacros.length; i++){
         resultMacros[i].listPos = i
         resultMacros[i].updateStatus = 'unsent'
       }
-      console.log("calling updateMacroStatus")
+      debug && console.log("calling updateMacroStatus")
       updateMacroStatusNew(null, resultMacros, 'unsent')
-      console.log("after updateMacroStatus")
+      debug && console.log("after updateMacroStatus")
 
       // make dummy request to server
       if(resultMacros.length > 0){
         // const requestURL = 'macros/'+tempMacros[0].id        
         // const requestURL = 'macros/update_many'       
-        // console.log("making demo PUT request to: ", requestURL)
-        // console.log("payload: ", {macro:{title:'New Updated Via API'}})
+        // debug && console.log("making demo PUT request to: ", requestURL)
+        // debug && console.log("payload: ", {macro:{title:'New Updated Via API'}})
         // const macroPayload = bulkMacroPayloadBuilder(tempMacros.slice())
         // genericAPIReqPut(requestURL, {macro:tempMacros[0]})
         // genericAPIReqPut(requestURL, {macro:{title:'New Updated Via API'}})
-        // console.log("updating macros with macroPayload: ", macroPayload)
+        // debug && console.log("updating macros with macroPayload: ", macroPayload)
         // genericAPIReqPut(requestURL, macroPayload)
         // the update_many endpoint doesn't support changing many fields
         // genericAPIReqPut(requestURL, {macros:[{id:360074290434, title:"New Testing Macro udpated via API"}]})
         // send X API requests at a time
         // disable send requests for now
-        // console.log("calling sendManyAPIRequests")
+        // debug && console.log("calling sendManyAPIRequests")
         // sendManyAPIRequests(resultMacros)
       }
     })
 
     checkAll.change(function(){
-      console.log("check all clicked, eventually check/uncheck all checkboxes")
-      console.log("check all .is(:checked) ", checkAll.is(':checked'))
+      debug && console.log("check all clicked, eventually check/uncheck all checkboxes")
+      debug && console.log("check all .is(:checked) ", checkAll.is(':checked'))
       // if(checkAll.is(':checked')){
       resultMacros.forEach(macro=>{
         // set the value to checked or unchecked
         const toUpdateDiv = $('#'+prefixID+macro.listPos)
-        console.log("going to update: ", toUpdateDiv)
+        debug && console.log("going to update: ", toUpdateDiv)
         const tdToUpdate = $(toUpdateDiv.find('td')[1]) // future version maybe not needed
-        console.log("tdToUpdate", tdToUpdate)
+        debug && console.log("tdToUpdate", tdToUpdate)
         const tempCheckbox = $(tdToUpdate.find('input')[0]) 
-        console.log("input.checkbox to update", tempCheckbox)
+        debug && console.log("input.checkbox to update", tempCheckbox)
         tempCheckbox.prop('checked', checkAll.is(':checked'))
-        console.log("tempCheckbox .is(:checked) ", tempCheckbox.is(':checked'))
+        debug && console.log("tempCheckbox .is(:checked) ", tempCheckbox.is(':checked'))
         // statusImage.attr('src', statusImages[status])
         // const temp
       })
@@ -1129,50 +1343,51 @@ block content
     })
     checkCaseSensitive.change(function(){
       isCaseSensitive = !isCaseSensitive
-      console.log("updated case sensitive", isCaseSensitive)
+      debug && console.log("updated case sensitive", isCaseSensitive)
       actionQueryText.trigger('keyup')
     })
 
     checkReplaceWord.change(function(){
       isReplaceWord = !isReplaceWord
-      // console.log("actionquerytext trigger")
+      // debug && console.log("actionquerytext trigger")
       // actionQueryText.trigger('change')
-      console.log("replace word wrapper show ")
+      debug && console.log("replace word wrapper show ")
       // actionQueryText.trigger('keyup')
       if(replaceWordWrapper.is(':visible')){
-        console.log("hiding replace word")
+        debug && console.log("hiding replace word")
         replaceWordWrapper.hide()
         // replaceText.prop('disable', false)
         disableReplaceText(false)
       }else{
-        console.log("showing replace word")
+        debug && console.log("showing replace word")
         replaceWordWrapper.show()
         disableReplaceText(true)
         // replaceText.prop('disable', true)
       }
-      // console.log("actionquerytext dispatch event")
+      // debug && console.log("actionquerytext dispatch event")
       // actionQueryText.dispatchEvent(new Event('change'))
     })
 
     updateButton.click(function(){
-      console.log("update button clicked")
+      debug && console.log("update button clicked")
       // find out which macros are selected send them to udpate
       const checkboxes = []
       const macrosToUpdate = []
       $('#macro-results tbody').find(':checkbox:checked').each(function(){
         const macroPos = $(this).val()
-        console.log("this is checked: ", $(this).val())
+        debug && console.log("this is checked: ", $(this).val())
         updateMacroStatusNew(resultMacros[macroPos], null, 'sending') // result macros from last filter
         // send actual update
         macrosToUpdate.push(resultMacros[$(this).val()])
       }) 
-      console.log($('macro-results').find('input'))
-      // console.log($('macro-results'))
-      console.log("done checking checkboxes, sending update request")
-      console.log("lookup field to update: ", lookup)
-      console.log("lookup field to update: ", lookup)
-      const localUpdatedMacros = macroUpdaterLocal(macrosToUpdate, lookup.id) 
-      console.log("updated local macros: ", localUpdatedMacros)
+      debug && console.log($('macro-results').find('input'))
+      // debug && console.log($('macro-results'))
+      debug && console.log("done checking checkboxes, sending update request")
+      debug && console.log("lookup field to update: ", lookup)
+      debug && console.log("lookup field to update: ", lookup)
+      // const localUpdatedMacros = macroUpdaterLocal(macrosToUpdate, lookup.id, lookup.meta) 
+      const localUpdatedMacros = macroUpdaterLocal(macrosToUpdate, replaceLookup.id, replaceLookup.meta) 
+      debug && console.log("updated local macros: ", localUpdatedMacros)
 
       alert('test')
       // return early if error
@@ -1185,11 +1400,11 @@ block content
     })
 
     function testFunction(){
-      console.log("inside test function")
+      debug && console.log("inside test function")
     }
  
     // replace field w/ value
-    function macroUpdaterLocal(macros, field){
+    function macroUpdaterLocal(macros, field, metaBool){
       // find out if its text or a drop down field
       
       // replaceSelectValue = $('#replaceSelectValue')
@@ -1203,7 +1418,7 @@ block content
         tempValue = replaceSelectValue.val()
         if(tempValue != 'All'){
           // check that at least one group has been added
-          console.log("groupTagList.children(): ", groupTagList.children())
+          debug && console.log("groupTagList.children(): ", groupTagList.children())
           if(groupTagList.children().length == 0){
             return {error:'Please select at least one group'}
           }
@@ -1214,15 +1429,15 @@ block content
           })
         }
       }else if(replaceSelectValue.is(':visible')){
-        console.log("use the drop down value")
+        debug && console.log("use the drop down value")
         tempValue = replaceSelectValue.val()
       }else{
-        console.log("use the text value")
+        debug && console.log("use the text value")
         tempValue = replaceText.val()
       }
-      console.log(`replace value: ${tempValue} with lookup.id ${lookup.id}`)
+      debug && console.log(`replace value: ${tempValue} with lookup.id ${lookup.id}`)
       const newMacros = macros.slice()
-      console.log("newMacros: ", newMacros)
+      debug && console.log("newMacros: ", newMacros)
       newMacros.forEach(macro=>{
         // non field updates
         if(field == 'group_permissions'){
@@ -1234,13 +1449,21 @@ block content
             tempValue.forEach(tempV=>{
               if(!firstVal){
                 macro.restriction.type = 'Group'
-                console.log('restriction  type set to group')
+                debug && console.log('restriction  type set to group')
                 macro.restriction = {id:tempV, ids:[]}
                 firstVal = 'done'
               }
               macro.restriction.ids.push(tempV)
             })
           }
+        }else if(lookup.meta){
+          // meta fields title, active, description
+          if(isReplaceWord && (lookup.metaField == 'title' || lookup.metaField == 'description')){
+            macro[lookup.metaField] = replaceWordInstances(macro[lookup.metaField], replaceWordNew.val())
+          }else{
+            macro[lookup.metaField] = tempValue
+          }
+          debug && console.log(`${macro[lookup.metaField]} set to ${tempValue}`)
         }else{
           // search for the field in actions
           let found = false
@@ -1257,7 +1480,6 @@ block content
                 action.value = replaceWordInstances(action.value, replaceWordNew.val())
                 // action.value = tempValue
               }
-              
             }else{
               if(action.field == field){
                 found = true
@@ -1281,7 +1503,7 @@ block content
     function updateMatchTH(){
       // update matched column name
       const matchTH = $('#macro-results-match-th')
-      console.log("going to update: ", matchTH)
+      debug && console.log("going to update: ", matchTH)
       matchTH.html('Matched '+currentLookup)
     }
 
@@ -1290,7 +1512,7 @@ block content
       const macroPayload = {macros:[]}
       matchedMacros.forEach(macro=>{
         macro.title += 'updated via API'
-        console.log("adding macro to macroPayload: ", macro)
+        debug && console.log("adding macro to macroPayload: ", macro)
         macroPayload.macros.push(macro)
       })
       return macroPayload
@@ -1313,7 +1535,7 @@ block content
 
     // utility code
     function checkMatchStr(big, sub){
-      console.log(`comparing big:${big} to sub:${sub} isCaseSensitive`, isCaseSensitive)
+      debug && console.log(`comparing big:${big} to sub:${sub} isCaseSensitive`, isCaseSensitive)
       let match = false
       if(isCaseSensitive){
         if(big.indexOf(sub) != -1){
@@ -1332,11 +1554,11 @@ block content
     }
 
     function replaceWordInstances(fieldValue){
-      console.log("original field value: ", fieldValue)
-      console.log("replaceWordOriginal: ", replaceWordOriginal.val())
+      debug && console.log("original field value: ", fieldValue)
+      debug && console.log("replaceWordOriginal: ", replaceWordOriginal.val())
       const regex = new RegExp(replaceWordOriginal.val(), 'g')
       const newValue = fieldValue.replace(regex, replaceWordNew.val())
-      console.log("new field value: ", newValue)
+      debug && console.log("new field value: ", newValue)
       return newValue
     }
 
@@ -1345,9 +1567,9 @@ block content
 
     // disable enter event for now
     // groupTagInput.on('keydown', function(event){
-    //   console.log(event.type + ": " +  event.which)
+    //   debug && console.log(event.type + ": " +  event.which)
     //   if(event.which == 13){
-    //     console.log("preventing default")
+    //     debug && console.log("preventing default")
     //     event.preventDefault()
     //     const tag = groupTagInput.val().trim()
     //     addTag(tag, true)
@@ -1356,7 +1578,7 @@ block content
     //   }
     //   // add caret functionality for tags
     //   // if(event.which == 8 && groupTagInput.caret() == 0){
-    //   //   // console.log("The cursor position is: ", newTagInput.caret())
+    //   //   // debug && console.log("The cursor position is: ", newTagInput.caret())
     //   //   removeLastTag()
 
     //   // }
@@ -1364,14 +1586,14 @@ block content
 
     function closeTag(e){
       const elem = jQuery(this)
-      console.log("Removing tag: ", elem.text())
+      debug && console.log("Removing tag: ", elem.text())
       elem.remove()
     }
 
     // group
     replaceSelectValue.change(function(){
       const selectedVal = replaceSelectValue.val()
-      console.log("replace select value changed: ", selectedVal)
+      debug && console.log("replace select value changed: ", selectedVal)
       if(selectedVal == 'Choose Groups'){
         // show group permissions extra fields
         groupTagWrapper.show()
@@ -1387,18 +1609,18 @@ block content
       const tempTag = jQuery('<div/>').attr('class', 'c-tag c-tag--light groupTag')
       tempTag.attr('data1', dataValue)
       let exists = false
-      console.log("Searching to see if tag exists: ", tag)
+      debug && console.log("Searching to see if tag exists: ", tag)
       // updated to inline
       groupTagList.children().each(function(index){
-        console.log("current group compare tag: ", jQuery(this).text())
+        debug && console.log("current group compare tag: ", jQuery(this).text())
         if(jQuery(this).text() == tag)
           exists = true
       })
       // check dupes
       if(!exists){
-        console.log("Adding new tag")
+        debug && console.log("Adding new tag")
         tempTag.append(`<span>${tag}<span class='closeTag'></span></span>`)
-        console.log("appending: tempTag", tempTag)
+        debug && console.log("appending: tempTag", tempTag)
         jQuery('#groupTagList').append(tempTag)
         jQuery('.closeTag').parent().parent().click(closeTag)
       }
@@ -1408,6 +1630,7 @@ block content
 
     const replaceDynamicWordWrapper = $('#replaceDynamicWordWrapper')
     const checkDynamicSensitiveWrapper= $('#checkDynamicSensitiveWrapper')
+    const checkDynamicSensitiveWrapperLabel= $('#checkDynamicSensitiveWrapperLabel')
     const checkDynamicReplaceWordWrapper= $('#checkDynamicReplaceWordWrapper')
     const dynamicCheckAll = $('#dynamic-check-all')
     const prefixDynamicID = 'dynamic-result-'
@@ -1434,8 +1657,8 @@ block content
         }
         client.request(dynamicContentReq)
         .then(data=>{
-          console.log("got the data from dynamicContent API")
-          console.log(data)
+          debug && console.log("got the data from dynamicContent API")
+          debug && console.log(data)
           resolve(data)
         })
       })
@@ -1449,38 +1672,38 @@ block content
       
       // pull down from db then filter based on text
       const selectedVal = dynamicQueryText.val()
-      console.log("selectedText: ", selectedVal)
+      debug && console.log("selectedText: ", selectedVal)
       // const tempLookupID = lookups[currentLookup].id
       const tempLookupID = 'not used in dynamic content yet'
       resultDynamicItems = filterDynamicItems(tempLookupID, selectedVal, isDynamicTitle)
-      console.log("filtered macros: ", resultMacros)
+      debug && console.log("filtered macros: ", resultMacros)
       for(i = 0; i < resultMacros.length; i++){
         resultDynamicItems[i].listPos = i
         resultDynamicItems[i].updateStatus = 'unsent'
       }
-      console.log("resultDynamicItems: ", resultDynamicItems)
+      debug && console.log("resultDynamicItems: ", resultDynamicItems)
       // implement updateDynamicStatus to add to results
-      // console.log("calling updateMacroStatus")
+      // debug && console.log("calling updateMacroStatus")
       updateStatusNew(null, resultDynamicItems, 'unsent', 'dynamic')
-      console.log("after updateStatusNew")
+      debug && console.log("after updateStatusNew")
       return // return early for now
 
       // make dummy request to server
       if(resultMacros.length > 0){
         // const requestURL = 'macros/'+tempMacros[0].id        
         // const requestURL = 'macros/update_many'       
-        // console.log("making demo PUT request to: ", requestURL)
-        // console.log("payload: ", {macro:{title:'New Updated Via API'}})
+        // debug && console.log("making demo PUT request to: ", requestURL)
+        // debug && console.log("payload: ", {macro:{title:'New Updated Via API'}})
         // const macroPayload = bulkMacroPayloadBuilder(tempMacros.slice())
         // genericAPIReqPut(requestURL, {macro:tempMacros[0]})
         // genericAPIReqPut(requestURL, {macro:{title:'New Updated Via API'}})
-        // console.log("updating macros with macroPayload: ", macroPayload)
+        // debug && console.log("updating macros with macroPayload: ", macroPayload)
         // genericAPIReqPut(requestURL, macroPayload)
         // the update_many endpoint doesn't support changing many fields
         // genericAPIReqPut(requestURL, {macros:[{id:360074290434, title:"New Testing Macro udpated via API"}]})
         // send X API requests at a time
         // disable send requests for now
-        // console.log("calling sendManyAPIRequests")
+        // debug && console.log("calling sendManyAPIRequests")
         // sendManyAPIRequests(resultMacros)
       }
     })
@@ -1492,24 +1715,24 @@ block content
         isDynamicTitle = false
       else
         isDynamicTitle = true
-      console.log("isDynamicTitle is now: ", isDynamicTitle)
+      debug && console.log("isDynamicTitle is now: ", isDynamicTitle)
     })
 
     // need to update/create dynamic status update function first
     dynamicCheckAll.change(function(){
-      console.log("check all clicked, eventually check/uncheck all checkboxes")
-      console.log("check all .is(:checked) ", checkAll.is(':checked'))
+      debug && console.log("check all clicked, eventually check/uncheck all checkboxes")
+      debug && console.log("check all .is(:checked) ", checkAll.is(':checked'))
       // if(checkAll.is(':checked')){
       resultDynamicItems.forEach(item=>{
         // set the value to checked or unchecked
         const toUpdateDiv = $('#'+prefixID+item.listPos)
-        console.log("dynamic content status going to update: ", toUpdateDiv)
+        debug && console.log("dynamic content status going to update: ", toUpdateDiv)
         const tdToUpdate = $(toUpdateDiv.find('td')[1]) // future version maybe not needed
-        console.log("tdToUpdate", tdToUpdate)
+        debug && console.log("tdToUpdate", tdToUpdate)
         const tempCheckbox = $(tdToUpdate.find('input')[0]) 
-        console.log("input.checkbox to update", tempCheckbox)
+        debug && console.log("input.checkbox to update", tempCheckbox)
         tempCheckbox.prop('checked', checkAll.is(':checked'))
-        console.log("tempCheckbox .is(:checked) ", tempCheckbox.is(':checked'))
+        debug && console.log("tempCheckbox .is(:checked) ", tempCheckbox.is(':checked'))
         // statusImage.attr('src', statusImages[status])
         // const temp
       })
@@ -1519,9 +1742,9 @@ block content
     // need to have title and variant be searchable, key currently not used
     // currently returns a list of variants with added itemID and itemName 
     function filterDynamicItems(key, value, isTitle){
-      console.log("------")
-      console.log("inside of filterDynamicItems")
-      console.log(`Matches for key(isTitle): ${isTitle} with value ${value}`)
+      debug && console.log("------")
+      debug && console.log("inside of filterDynamicItems")
+      debug && console.log(`Matches for key(isTitle): ${isTitle} with value ${value}`)
       const matchedVariants = []
       const tempItems = allDynamicItems.slice()
       // case 1 match title - return matched items contained variants (some items, all variants)
@@ -1532,25 +1755,25 @@ block content
         // if(key == 'title'){
         if(isTitle){
           if(item.name.toLowerCase().indexOf(value) != -1){
-            console.log("this dynamic item name matches: ",  item)
+            debug && console.log("this dynamic item name matches: ",  item)
             match = true
             // item.matchedField = item.name
             // insert all varaints into matched items
             item.variants.forEach(variant=>{
               variant.itemName = item.name
               variant.itemID = item.id
-              console.log("adding variant: ", variant)
+              debug && console.log("adding variant: ", variant)
               matchedVariants.push(variant)
             })
           }
         }else{
           item.variants.forEach(variant=>{
             if(checkMatchStr(variant.content, value)){
-              console.log("this variant matches: ", variant)
+              debug && console.log("this variant matches: ", variant)
               match = true
               variant.itemName = item.name
               variant.itemID = item.id
-              console.log("adding variant: ", variant)
+              debug && console.log("adding variant: ", variant)
               matchedVariants.push(variant)
             }
           })
@@ -1562,13 +1785,13 @@ block content
         //   matchedItems.push(item)
         // }
       })
-      console.log("matchedVariantItems: ", matchedVariants)
+      debug && console.log("matchedVariantItems: ", matchedVariants)
       return matchedVariants
     }
 
     // should support macro or dynamic item
     function updateStatusNew(item, items, status, type){
-      console.log("inside updateStatusNew, type:", type)
+      debug && console.log("inside updateStatusNew, type:", type)
       const prefixID = (type=='macro') ? 'macro-result-': 'dynamic-result-'
       const statusImages = {
         'unsent':"https://img.icons8.com/color/16/000000/sort-right.png",
@@ -1578,27 +1801,27 @@ block content
 
       if(item){
         // find the item line
-        // console.log("updating status for item: ", item)
-        console.log(`updating status for type: ${type} item: ${item}`)
+        // debug && console.log("updating status for item: ", item)
+        debug && console.log(`updating status for type: ${type} item: ${item}`)
         const toUpdateDiv = $('#'+prefixID+item.listPos)
-        console.log("going to update: ", toUpdateDiv)
+        debug && console.log("going to update: ", toUpdateDiv)
 
         // update the img with correct status image
         const tdToUpdate = $(toUpdateDiv.find('td')[0])
-        console.log("tdToUpdate", tdToUpdate)
+        debug && console.log("tdToUpdate", tdToUpdate)
         const statusImage = $(tdToUpdate.find('img')[0])
-        console.log("image to update", statusImage)
+        debug && console.log("image to update", statusImage)
         statusImage.attr('src', statusImages[status])
-        console.log("image to update", statusImage)
+        debug && console.log("image to update", statusImage)
       }else if(items){
         // NOTE: currently this is initial only, does not support update
         // update all item statuses usually for initial
         // reset #results
         const itemTBody = (type=='macro') ? $($('#macro-results').find('tbody')[0]):$($('#dynamic-results').find('tbody')[0])
-        console.log("Should be the tbody, resetting it", itemTBody)
+        debug && console.log("Should be the tbody, resetting it", itemTBody)
         itemTBody.html('')
         items.forEach(item=>{
-          console.log("updating a item result status at: ", item.listPos)
+          debug && console.log("updating a item result status at: ", item.listPos)
           const itemTR = $('<tr />')
 
 
@@ -1628,7 +1851,7 @@ block content
 
 
           const checkLabel = $('<label />')
-          checkLabel.addClass('c-chk__label is-hidden')
+          checkLabel.addClass('c-chk__label is-hidden chk-offset')
           checkLabel.attr('for', itemCheckInput+'-'+item.listPos)
 
           const itemTitleText = (type=='macro')? item.title : item.itemName
@@ -1652,7 +1875,7 @@ block content
           itemLinkTD.addClass('c-table__row__cell')
 
 
-          console.log("adding stuff to checkdiv")
+          debug && console.log("adding stuff to checkdiv")
           checkDiv.append(checkInput)
           checkDiv.append(checkLabel)
 
@@ -1683,7 +1906,7 @@ block content
           //   td(class="c-table__row__cell") filler cell text
 
 
-          console.log("adding stuff to itemTR and itemTBody")
+          debug && console.log("adding stuff to itemTR and itemTBody")
           itemTBody.append(itemTR)
         })
         
@@ -1705,7 +1928,7 @@ block content
         tempValue = replaceSelectValue.val()
         if(tempValue != 'All'){
           // check that at least one group has been added
-          console.log("groupTagList.children(): ", groupTagList.children())
+          debug && console.log("groupTagList.children(): ", groupTagList.children())
           if(groupTagList.children().length == 0){
             return {error:'Please select at least one group'}
           }
@@ -1716,15 +1939,15 @@ block content
           })
         }
       }else if(replaceSelectValue.is(':visible')){
-        console.log("use the drop down value")
+        debug && console.log("use the drop down value")
         tempValue = replaceSelectValue.val()
       }else{
-        console.log("use the text value")
+        debug && console.log("use the text value")
         tempValue = replaceText.val()
       }
-      console.log(`replace value: ${tempValue} with lookup.id ${lookup.id}`)
+      debug && console.log(`replace value: ${tempValue} with lookup.id ${lookup.id}`)
       const newMacros = macros.slice()
-      console.log("newMacros: ", newMacros)
+      debug && console.log("newMacros: ", newMacros)
       newMacros.forEach(macro=>{
         // non field updates
         if(field == 'group_permissions'){
@@ -1736,7 +1959,7 @@ block content
             tempValue.forEach(tempV=>{
               if(!firstVal){
                 macro.restriction.type = 'Group'
-                console.log('restriction  type set to group')
+                debug && console.log('restriction  type set to group')
                 macro.restriction = {id:tempV, ids:[]}
                 firstVal = 'done'
               }
@@ -1799,18 +2022,18 @@ block content
       },
       callback: {
         onInit: function(node){
-          console.log("type ahead initiated on: " + node.selector)
+          debug && console.log("type ahead initiated on: " + node.selector)
         },
         onSearch: function(node,query){
-          console.log("searching with: ", query)
-          console.log("searching against allGroups: ", allGroups)
+          debug && console.log("searching with: ", query)
+          debug && console.log("searching against allGroups: ", allGroups)
         },
         onSubmit: function(node, form, item, event){
           event.preventDefault()
-          console.log("Not submitting in typeahead")
+          debug && console.log("Not submitting in typeahead")
         },
         onClickAfter: function(node, form, item, event){
-          console.log("Group tags being updated with", item.name)
+          debug && console.log("Group tags being updated with", item.name)
           addTag(item.name, item.id, true)
           jQuery('#groupTag').val('')
         }
@@ -1841,14 +2064,14 @@ block content
     })
 
     function activateTab(elem){
-      console.log("going to activate tab for: ", elem)
+      debug && console.log("going to activate tab for: ", elem)
       const tabItem = $(elem)
-      console.log(tabItem)
-      console.log(tabItem.attr('id'))
-      console.log(tabItem.attr('aria-controls'))
+      debug && console.log(tabItem)
+      debug && console.log(tabItem.attr('id'))
+      debug && console.log(tabItem.attr('aria-controls'))
       const tempPanel = tabItem.attr('aria-controls')
       // deactivate current panel
-      console.log("deactivating: ", activePanel)
+      debug && console.log("deactivating: ", activePanel)
       activePanel.attr('aria-hidden', true)
 
       activePanel = tempPanel
@@ -1862,25 +2085,224 @@ block content
       }
       activePanel.attr('aria-hidden', false)
       // activate new panel
-      console.log("activating: ", activePanel)
+      debug && console.log("activating: ", activePanel)
       // activePanel =
     }
+
+    // csv parsing
+    uploadMacroCSV.click(function(){
+      // click file input
+      debug && console.log("starting macro csv upload: ")
+      macroCSVFile.click()
+    })
+
+    macroCSVFile.change(function(){
+      // update status
+      uploadMacroCSVStatus.val('Processing...')
+      
+      // check is csv
+      const filename = macroCSVFile.val().split('\\')
+      // check parse success
+      const extension = macroCSVFile.val().split('\\').pop().split('.').pop().toLowerCase()
+      if(extension != 'csv'){
+        debug && console.log('file must be csv')
+      }else{
+        debug && console.log('csv file selected')
+      } 
+      
+
+      const fileObj = this.files[0]
+      debug && console.log('files[0]', fileObj) 
+      debug && console.log('files[0].name', fileObj.name) 
+      // display "must be valid CSV in format: macro__url, etc"
+      CSV.fetch({file:fileObj})
+      .done(function(dataset){
+        debug && console.log('csv dataset', dataset) 
+        let currentMacroNum = -1
+
+        // add 2 fields to hold actions and groupids
+        const actionsPos = dataset.fields.length
+        const groupsPos = dataset.fields.length+1
+        const fieldMappings = {}
+        fieldMappings[actionsPos] = 'actions'
+        fieldMappings[groupsPos] = 'groups'
+
+        // find range of group ids
+        let groupIDStart = null
+        let groupIDLen = null
+        for(i = 0; i < dataset.fields.length; i++){
+          const tempField = dataset.fields[i]
+          if(tempField.includes('macros__restriction__ids')){
+            if(groupIDStart === null){ 
+              groupIDStart = i
+              groupIDLen = 1
+            }else{
+              groupIDLen++
+            }
+          }
+        }
+
+        debug && console.log(`groupIDStart: ${groupIDStart}, groupIDLen: ${groupIDLen}`)
+
+        const tempAllMacros = []
+        dataset.records.forEach(item=>{
+          if(item[0] != '' && item[0] != null){
+            currentMacroNum++
+            debug && console.log('macro to update: ', item) 
+            const tempAction = {}
+            item[actionsPos] = [{'field':item[8], 'value':item[9]}]
+            const tempGroupIDs = []
+            item[groupsPos] = item.slice(groupIDStart, groupIDStart+ groupIDLen)
+            tempAllMacros.push(item)
+            item[groupsPos] = item[groupsPos].filter(function(el){
+              if(el != null && el != '')
+                return true
+              return false
+            })
+          }
+          else if(item[2] != '' && item[2] != null){
+            // can combine with above most likely
+            currentMacroNum++
+            debug && console.log('new macro: ', item) 
+            item[actionsPos] = [{'field':item[8], 'value':item[9]}]
+            item[groupsPos] = item.slice(groupIDStart, groupIDStart + groupIDLen)
+            // filter null - https://stackoverflow.com/a/281335/2701322
+            item[groupsPos] = item[groupsPos].filter(function(el){
+              if(el != null && el != '')
+                return true
+              return false
+            })
+
+            tempAllMacros.push(item)
+          }else{
+            // check for actions, add to temp all actions field
+            if(item[8] != '' && item[9] != '' && item[8] != null && item[9] != null ){
+              tempAllMacros[currentMacroNum][actionsPos].push({action:item[8], value:item[9]})
+            }
+          }
+        })
+        debug && console.log('tempAllMacros: ', tempAllMacros) 
+
+        // if no optional fields are set may not show up in csv
+        // keep actions__field/value until support for group ids/infinite columns is added
+        const macroLookup = [
+          'url',
+          'id',
+          'title',
+          'active',
+          'position',
+          'description',
+          'resctriction',
+          'restriction__type',
+          'restriction__id',
+          'actions__field',
+          'actions__value'
+        ]
+        // build lookup for parsed csv js
+        debug && console.log('searching fieldmappings, macroLookup: ', macroLookup) 
+        macroLookup.forEach(field=>{
+          const columnPos = dataset.fields.indexOf('macros__'+field)
+          if(columnPos != -1){
+            // store with position as key, zendesk field as value
+            debug && console.log('found macros__field: ', 'macros__'+field) 
+            fieldMappings[columnPos] = field
+            // delete(fieldMappings[field])
+          }
+        })
+        debug && console.log('fieldMappings: ', fieldMappings) 
+
+
+        // check of restriction exists
+
+        // TODO: check how many restriction ids columns exist
+        // check dataset.fields.contains('macros__restriction__id'), startpos, len
+
+
+        // csv will have many restriction__ids fields if there are any group restrictions set, 
+        // column count equals macro with the most number of specific groups set
+
+        // if no url is set insert
+        const newMacros = []
+        const toUpdateMacros = []
+        tempAllMacros.forEach(macro=>{
+          const tempMacro = {}
+          for(i = 0; i < macro.length; i++){
+            if(fieldMappings[i]){
+              tempMacro[fieldMappings[i]] = macro[i]
+              // make correct type
+              // boolean
+              if(fieldMappings[i] == 'active'){
+                if( macro[i].toLowerCase() == 'true' || macro[i] == true)
+                  tempMacro[fieldMappings[i]] = true
+                else
+                  tempMacro[fieldMappings[i]] = false
+              }
+              //int
+              if(fieldMappings[i] == 'id' || fieldMappings[i] == 'position'){
+                tempMacro[fieldMappings[i]] = parseInt(macro[i])
+              }
+            }
+          }
+          // user/group restriction logic
+          if(tempMacro.restriction_type == 'User'){
+            tempMacro.restriction = {id:tempMacro.restriction__id, type:'User'}
+            delete(tempMacro.restriction__type)
+            delete(tempMacro.restriction__id)
+          }
+          if(tempMacro.restriction_type == 'Group'){
+            tempMacro.restriction = {
+                id:tempMacro.restriction__id, 
+                type:'Group',
+                ids:macro[fieldMappings[groupsPos]]
+                }
+            delete(tempMacro.restriction__type)
+            delete(tempMacro.restriction__id)
+
+          }
+
+          // remove temp action fields
+          // if(tempMacro['actions__field'])
+          //   delete(tempMacro['actions__field'])
+          // if(tempMacro['actions__value'])
+          //   delete(tempMacro['actions__value'])
+          debug && console.log('tempMacro: ', tempMacro) 
+
+          // if it has an id, update, otherwise insert
+          if(tempMacro.id)
+            toUpdateMacros.push(tempMacro)
+          else
+            newMacros.push(tempMacro)
+        })
+        debug && console.log('newMacros: ', newMacros) 
+        debug && console.log('toUpdateMacros: ', toUpdateMacros) 
+        uploadMacroCSVStatus.val('Upserting macros...')
+        csvUploadDirty = true
+        
+        // upsert macros from csv
+        // update
+        sendManyAPIRequests(toUpdateMacros)
+        // // insert (currently both use same function) eventually might be better with different structure
+        sendManyAPIRequests(newMacros)
+      })
+
+    })
+    // on file select - check csv and parse into string and check success parse csv
 
 
 
     // OLD CODE:
     // update is currently single only, creation is macros array
     function updateMacroStatus(macro, macros, status){
-      console.log("inside updateMacroStatus")
+      debug && console.log("inside updateMacroStatus")
       if(macro){
         // find the macro line
         const toUpdateDiv = $('#'+prefixID+macro.listPos)
-        console.log("going to update: ", toUpdateDiv)
+        debug && console.log("going to update: ", toUpdateDiv)
 
 
 
         const toUpdateSpan =  toUpdateDiv.find('span')
-        console.log("toUpdateSpan", toUpdateSpan)
+        debug && console.log("toUpdateSpan", toUpdateSpan)
         toUpdateSpan.text(status)
         // const tempWrapper = $('<div />')
         // const tempElem = jQuery('<h3 />').text('Title: '+macro.title)
@@ -1891,12 +2313,12 @@ block content
         // NOTE: currently this is initial only, does not support update
         // update all macro status usually for initial
         // reset #results
-        console.log("inside macros updateMacroStatus")
+        debug && console.log("inside macros updateMacroStatus")
         const resultWrapper = jQuery('#results')
         resultWrapper.html('')
         macros.forEach(macro=>{
-          console.log("updating a macro result status at: ", macro.listPos)
-          console.log("updating a macro result status at: ", macro.title)
+          debug && console.log("updating a macro result status at: ", macro.listPos)
+          debug && console.log("updating a macro result status at: ", macro.title)
           const tempWrapper = $('<div />')
           const tempElem = jQuery('<h3 />').text('Title: '+macro.title)
           tempWrapper.attr('id', prefixID + macro.listPos)
