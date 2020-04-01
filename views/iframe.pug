@@ -11,7 +11,7 @@ block content
         class="c-tab__list__item is-selected"
         id="tab1"
         role="tab"
-        tabindex="0") Macros
+        tabindex="0") Macros Dev
       li(
         aria-controls="panel2"
         aria-expanded="false"
@@ -361,7 +361,7 @@ block content
   script(type='text/javascript').
     // Initialise the Zendesk JavaScript API client
     // const tempTag = jQuery('<div/>').attr('class', 'c-tag c-tag--sm c-tag--light c-tag--pill tagW')
-    const debug = false
+    const debug = true
 
     debug && console.log("starting javascript in app")
     var client = ZAFClient.init();
@@ -386,7 +386,7 @@ block content
     let allCustomTicketFields = []
     getAllMacrosAPI()
     .then(data=>{
-      debug && console.log("echoing out macros")
+      debug && console.log("echoing out datamacros ", data)
       addMacros(data.macros)
       allMacros = data.macros
     })
@@ -468,20 +468,41 @@ block content
     }
 
 
-    function getAllMacrosAPI(){
+    function getAllMacrosAPI(previousResults, nextPageURL){
       // same as above but use the API rest endpoint - 
       // https://developer.zendesk.com/apps/docs/developer-guide/using_sdk#working-with-requests
+      // start with previous results if this is a new call
+      debug && console.log("inside getallmacrosapi")
+      const tempAllMacros = previousResults ? previousResults : {macros:[]}
       return new Promise((resolve, reject)=>{
         const macrosReq = {
             url: '/api/v2/macros.json',
             type: 'GET',
             dataType: 'json'
         }
+        if(nextPageURL){
+          const tempNextPage = nextPageURL.split('page=')[1]
+          macrosReq.url += '?page='+tempNextPage
+        }
+        debug && console.log("macrosReq: ", macrosReq)
         client.request(macrosReq)
         .then(data=>{
           debug && console.log("got the data from macros API")
           debug && console.log(data)
-          resolve(data)
+
+          tempAllMacros.macros = tempAllMacros.macros.concat(data.macros)
+          // continue to add new results until no more pagination
+          if(data.next_page != null){ // should fail if null
+            // get more results
+            debug && console.log('getting more macros')
+            getAllMacrosAPI(tempAllMacros, data.next_page)
+            .then(data=>{
+              resolve(data)
+            })
+          }else{
+            debug && console.log('no more macros')
+            resolve(tempAllMacros)
+          }
         })
       })
     }
@@ -1089,7 +1110,8 @@ block content
       tempMacros.forEach(macro=>{
         let match = false
         if(key == 'title' || key == 'description'){
-          if(macro[key] && macro[key].toLowerCase().indexOf(value) != -1){
+          if(macro[key] && checkMatchStr(macro[key], value)){ 
+            // if(macro[key] && macro[key].toLowerCase().indexOf(value) != -1){ // old non case sensitive
             debug && console.log(`this macro ${key} matches: `, macro)
             match = true
             macro.matchedField = macro[key]
@@ -1405,6 +1427,7 @@ block content
  
     // replace field w/ value
     function macroUpdaterLocal(macros, field, metaBool){
+      debug && console.log(`field: ${field}, metaBool: ${metaBool}`)
       // find out if its text or a drop down field
       
       // replaceSelectValue = $('#replaceSelectValue')
@@ -1438,22 +1461,24 @@ block content
       debug && console.log(`replace value: ${tempValue} with lookup.id ${lookup.id}`)
       const newMacros = macros.slice()
       debug && console.log("newMacros: ", newMacros)
+
       newMacros.forEach(macro=>{
         // non field updates
         if(field == 'group_permissions'){
           // update restriction id and ids for group permissions
-          if(tempValue = 'All'){
+          if(tempValue == 'All'){
             macro.restriction = null
           }else{
             let firstVal = null
             tempValue.forEach(tempV=>{
               if(!firstVal){
-                macro.restriction.type = 'Group'
+                macro.restriction = {}
                 debug && console.log('restriction  type set to group')
-                macro.restriction = {id:tempV, ids:[]}
+                macro.restriction = {id:parseInt(tempV), ids:[]}
+                macro.restriction.type = 'Group'
                 firstVal = 'done'
               }
-              macro.restriction.ids.push(tempV)
+              macro.restriction.ids.push(parseInt(tempV))
             })
           }
         }else if(lookup.meta){
@@ -1754,7 +1779,9 @@ block content
         // const matchedVariants = [] // used for non title search
         // if(key == 'title'){
         if(isTitle){
-          if(item.name.toLowerCase().indexOf(value) != -1){
+          // if(item.name.toLowerCase().indexOf(value) != -1){ //old code non case sensitive
+          // updated to check for case sensitive
+          if(checkMatchStr(item.name, value)){ 
             debug && console.log("this dynamic item name matches: ",  item)
             match = true
             // item.matchedField = item.name
@@ -1915,6 +1942,7 @@ block content
     }
 
     function dynamicUpdaterLocal(items, field){
+      // TODO: check dynamic code, this maybe not needed in dynamic code
       // find out if its text or a drop down field
       
       // replaceSelectValue = $('#replaceSelectValue')
@@ -1952,7 +1980,7 @@ block content
         // non field updates
         if(field == 'group_permissions'){
           // update restriction id and ids for group permissions
-          if(tempValue = 'All'){
+          if(tempValue == 'All'){
             macro.restriction = null
           }else{
             let firstVal = null
