@@ -11,7 +11,7 @@ block content
         class="c-tab__list__item is-selected"
         id="tab1"
         role="tab"
-        tabindex="0") Macros 
+        tabindex="0") Macros !{dev}
       li(
         aria-controls="panel2"
         aria-expanded="false"
@@ -20,6 +20,14 @@ block content
         id="tab2"
         role="tab"
         tabindex="-1") Dynamic Content
+      li(
+        aria-controls="panel3"
+        aria-expanded="false"
+        aria-selected="false"
+        class="c-tab__list__item"
+        id="tab3"
+        role="tab"
+        tabindex="-1") Updates Remaining - !{updatesRemaining}
     div(aria-hidden="false"
       aria-labelledby="tab1"
       class="c-tab__panel"
@@ -98,7 +106,7 @@ block content
                         id="check-all", 
                         type="checkbox")
                       label(class="c-chk__label is-hidden",
-                        for="check-all")
+                  before      for="check-all")
                   th(class="c-table__row__cell") Title
                   th(class="c-table__row__cell"
                     id='macro-results-match-th') Matched
@@ -181,6 +189,16 @@ block content
                         style='width:auto;')
         div(class='row')
           div(class='col-md-4')
+            div(id='not-enough-updates',
+              class='c-callout c-callout--warning',
+              style='display:none; margin-top:10px;') 
+              strong(class='c-callout__title') Low Updates
+              p(class='c-callout__paragraph') Not enough updates remaining, 
+                a(href='#',
+                // go to other tab
+                id='nav-to-purchase-updates') please purchase more updates
+                |! 
+                p(id='updates-remaining-message')
             input(type='button',
               value='Update',
               id='updateButton',
@@ -199,8 +217,22 @@ block content
               style="display:none")
         div(class='row')
           div(class='col-md-4')
+
           div(class='col-md-4')
-            a(href='https://support.zendesk.com/hc/en-us/community/posts/115006131447-How-to-export-Zendesk-macros-into-a-spreadsheet' target='_blank') Guide to get a properly formed CSV file for upload
+            p
+              a(href='https://support.zendesk.com/hc/en-us/community/posts/115006131447-How-to-export-Zendesk-macros-into-a-spreadsheet' target='_blank') Guide to get a properly formed CSV file for upload
+            p &nbsp;
+            p Make sure to 
+              a(href='https://support.zendesk.com/hc/en-us/community/posts/115006131447-How-to-export-Zendesk-macros-into-a-spreadsheet' target='_blank') Backup Your Macros and Dynamic Content
+              |  before making changes
+        // div(class='row')
+        //   div(class='col-md-4')
+        //   div(class='col-md-4') &nbsp;
+        // div(class='row')
+        //   div(class='col-md-4')
+        //   div(class='col-md-4') Make sure to 
+        //     a(href='https://support.zendesk.com/hc/en-us/community/posts/115006131447-How-to-export-Zendesk-macros-into-a-spreadsheet' target='_blank') Backup Your Macros and Dynamic Content
+        //     |  before making changes
         // h2 debug/testing text below
         // div(id='macroListWrapper')
         //   // a deal
@@ -326,7 +358,7 @@ block content
                 id="checkDynamicReplaceWord", 
                 type="checkbox")
               label(class="c-chk__label", 
-                for="checkReplaceWord") Replace Word
+                for="checkDynamicReplaceWord") Replace Word
         div(class='row',
           id='replaceDynamicWordWrapper')
           div(class='col-md-4')
@@ -341,10 +373,66 @@ block content
               class='c-txt__input')
         div(class='row')
           div(class='col-md-4')
+            div(id='not-enough-updates-dynamic',
+              class='c-callout c-callout--warning',
+              style='display:none; margin-top:10px;') 
+              strong(class='c-callout__title') Low Updates
+              p(class='c-callout__paragraph') Not enough updates remaining, 
+                a(href='#',
+                // go to other tab
+                id='nav-to-purchase-updates-dynamic') please purchase more updates
+                |! 
+                p(id='updates-remaining-message-dynamic')
             input(type='button',
               value='Update',
               id='updateDynamicButton',
               class='standardButton c-btn c-btn--primary')
+
+    div(aria-hidden="true"
+      aria-labelledby="tab3"
+      class="c-tab__panel"
+      id="panel3"
+      role="tabpanel") 
+
+      // Updates Remaining
+      div(class='container-fluid')
+
+
+        div(class='row')
+          // // form(class='width-300')
+          // div(class='col-md-4')
+          //   label(class='c-txt__label',
+          //     for='updatesRemaining') Updates Remaining
+          //       input(type='button',
+          div(class='col-md-4')
+            // maybe needs different grid settings
+            section(aria-hidden="true",
+              class="c-dialog c-dialog--large",
+              id="test-modal1",
+              role="dialog",
+              style="display:none",
+              tabindex="-1")
+              header
+                h1(class="c-dialog__header") Updates Added
+                button(aria-label="close",
+                class="c-dialog__close")
+              p(class="c-dialog__body") Thank you for your purchase
+              footer(class="c-dialog__footer")
+                button(class="c-btn js-close") Okay
+            // a(class="c-btn js-dialog js-backdrop",
+            //   href="#test-modal1",
+            //   role="button") Open Purchase Modal
+            // span(class="c-btn",
+            //   id="test-modal-new") Open Purchase Modal ZAF v2
+
+            // value='Update',
+
+
+            input(type='button',
+              id='buyButton',
+              value='Get More Updates',
+              class='standardButton c-btn c-btn--primary',
+              onclick='buyButton()')
 
 
 
@@ -361,7 +449,7 @@ block content
   script(type='text/javascript').
     // Initialise the Zendesk JavaScript API client
     // const tempTag = jQuery('<div/>').attr('class', 'c-tag c-tag--sm c-tag--light c-tag--pill tagW')
-    const debug = false
+    const debug = '!{dev}' == 'Dev' ? true : false
 
     debug && console.log("starting javascript in app")
     var client = ZAFClient.init();
@@ -387,13 +475,15 @@ block content
     getAllMacrosAPI()
     .then(data=>{
       debug && console.log("echoing out datamacros ", data)
-      addMacros(data.macros)
+      addMacros(data.macros) // TODO: maybe not used
       allMacros = data.macros
     })
     getAllDynamicContentAPI()
     .then(data=>{
       debug && console.log("echoing out dynamic content: ", data)
       allDynamicItems = data.items
+      debug && console.log("adding new dynamic content item")
+      // dynamicContentAPIPOSTAmount(allDynamicItems.length, 50, 500)
     })
     getAllTicketFields()
     .then(data=>{
@@ -426,19 +516,59 @@ block content
       // displayItems(data.groups, 'name', "#groups")
       // createDropDown(data.groups, 'name', '#groupSelect')
     })
+    getUsers()
+    .then(data=>{
+      debug && console.log('users data: ', data)
+      const admins = []
+      data.users.forEach(user=>{
+        if(user.role == 'admin')
+          admins.push(user.email)
+      })
+
+      // get current admins
+      debug && console.log('sending user analytics')
+      analyticsPOST('users', {account:'!{account}', users:admins})
+      .then(data=>{
+        debug && console.log('users analytics success: ', data)
+      })
+
+    })
     // debug && console.log("calling findGroups")
     // findGroups(360000820973)
+
+
 
     const statuses = []
 
     client.on('ticket.requester.id.changed', function(e){
       // refreshZenApp()
     })
+    // modal
+
+    const modalButton = $('#test-modal-new')
+    debug && console.log('click for: ', modalButton)
+    modalButton.click(function(){
+      debug && console.log('opening new zaf v2 modal')
+      client.invoke('instances.create',{
+        location:'modal',
+        // url:'assets/success-modal.html'
+        url:'https://!{baseURL}.herokuapp.com/assets/success-modal.html'
+      })
+      .then(data=>{
+        debug && console.log('test modal')
+      })
+    })
+
     debug && console.log("getting context")
     let subdomain = null
     client.context().then(context=>{
       debug && console.log("context:", context)
       subdomain = context.account.subdomain
+      // update the button to include the subdomain
+      // const buyButton = $('#buyButton')
+      // console.log('set buybutton subdomain')
+      // buyButton.attr('onclick', buyButton.attr('onclick') + subdomain + '");')
+      // console.log('set buybutton subdomain')
     })
 
     function loadInitialAppStuff(){
@@ -548,6 +678,22 @@ block content
         client.request(groupsReq)
         .then(data=>{
           debug && console.log("returning getGroups() data")
+          resolve(data)
+        })
+      })
+    }
+    function getUsers(){
+      return new Promise((resolve, reject)=>{
+        debug && console.log("fetching users")
+        // https://developer.zendesk.com/apps/docs/developer-guide/using_sdk#working-with-requests
+        const usersReq = {
+            url: '/api/v2/users.json',
+            type: 'GET',
+            dataType: 'json'
+        }
+        client.request(usersReq)
+        .then(data=>{
+          debug && console.log("returning usersReq() data")
           resolve(data)
         })
       })
@@ -678,6 +824,7 @@ block content
           debug && console.log("parsed data: ", parsedData)
           // append macro so its accessible on cb
           respData.macro = data.macro
+          respData.variant = data.variant
           resolve(respData)
         })
         .catch(err=>{
@@ -722,38 +869,60 @@ block content
     }
 
     // TODO: update to add support for upsert, inserts if macro.id not set, genericAPIReq
+    // TODO: update to allow support for dynamic items
     function sendManyAPIRequests(macros){
       // meter send macros
       const apiRequests = []
-      debug && console.log("attempting to send multiple api requests for: ", macros)
-      macros.forEach(macro=>{
-        let requestURL = ''
-        let request = ''
-        // PUT for update, POST for insert 
-        if(macro.id){
-          requestURL = 'macros/'+macro.id        
-          // macro.title += " - via API 3" // debug testing
-          request = genericAPIReqPut(requestURL, {macro:macro})
+      let enoughUpdates = false
+      // check if enough updates remaining
+      enoughUpdatesRemaining(macros.length)
+      .then(data=>{
+        debug && console.log("enoughUpdatesRemaining: ", data)
+        if(!data.success){
+          // mark updates with error
+          // display prompt to get more updates
+          macros.forEach(macro=>{
+            updateMacroStatusNew(macro, null, 'error')
+          })
+          debug && console.log("updated macro statuses to error")
+          displayNotEnoughUpdates(macros.length, data.updatesRemaining, 'macro')
+          return
         }else{
-          requestURL = 'macros'        
-          // macro.title += " - via API 3" // debug testing
-          request = genericAPIReqPost(requestURL, {macro:macro})
+          // build update requests - may not be queueing
+          debug && console.log("attempting to send multiple api requests for: ", macros)
+          macros.forEach(macro=>{
+            let requestURL = ''
+            let request = ''
+            // PUT for update, POST for insert 
+            if(macro.id){
+              requestURL = 'macros/'+macro.id        
+              // macro.title += " - via API 3" // debug testing
+              request = genericAPIReqPut(requestURL, {macro:macro})
+            }else{
+              requestURL = 'macros'        
+              // macro.title += " - via API 3" // debug testing
+              request = genericAPIReqPost(requestURL, {macro:macro})
+            }
+            apiRequests.push(request)
+            // test bluebird
+          })
+          debug && console.log("attempting to Promise.map apiRequests: ", apiRequests)
         }
-        apiRequests.push(request)
-        // test bluebird
-      })
-      debug && console.log("attempting to Promise.map apiRequests: ", apiRequests)
-      // use Promise.map for concurrency http://bluebirdjs.com/docs/api/promise.map.html
-      Promise.map(apiRequests, function(data){
-        debug && console.log("Inside of bluebird, returned data: ", data)
-        // need to mark the item as updated
-        // debug && console.log("updating displayMacros")
-        debug && console.log("updating displayMacros")
-        debug && console.log("original macro was: ", data.macro)
-        updateMacroStatusNew(data.macro, null, 'success')
-        // displayItems(macros, 'title', '#results', true)
+        enoughUpdates = true
+        // use Promise.map for concurrency http://bluebirdjs.com/docs/api/promise.map.html
+        // Note: may need to update to have the apiRequests be macros and send each request
+        // then process results after rather than just using apiRequests
+        return Promise.map(apiRequests, function(data){
+          debug && console.log("Inside of bluebird, returned data: ", data)
+          // need to mark the item as updated
+          // debug && console.log("updating displayMacros")
+          debug && console.log("updating displayMacros")
+          debug && console.log("original macro was: ", data.macro)
+          updateMacroStatusNew(data.macro, null, 'success')
+          // displayItems(macros, 'title', '#results', true)
 
-      }, {concurrency:1})
+        }, {concurrency:1})
+      })
       .then(()=>{
         debug && console.log("done updating macros")
         getAllMacrosAPI()
@@ -766,6 +935,154 @@ block content
             csvUploadDirty = false
           }
         })
+        debug && console.log("analytics for apiRequests: ", apiRequests)
+        return updateAnalytics(apiRequests)
+        .then(data=>{
+          debug && console.log("updated")
+        })
+      })
+    }
+
+    function sendManyVariantUpdates(variants){
+      const apiRequests = []
+      // let enoughUpdates = false // maybe not used anymore both update flows
+
+      enoughUpdatesRemaining(variants.length)
+      .then(data=>{
+        debug && console.log("dynamic content update after update remaining check, data: ", data)
+        if(!data.success){
+          // mark updates with error
+          // display prompt to get more updates
+          variants.forEach(variant=>{
+            updateStatusNew(variant, null, 'error')
+          })
+          debug && console.log("updated variant statuses to error")
+          displayNotEnoughUpdates(variants.length, data.updatesRemaining, 'dynamic')
+          return
+        }
+        else{
+          debug && console.log("attempting to send multiple api requests for: ", variants)
+          variants.forEach(variant=>{
+            let requestURL = `dynamic_content/items/${variant.itemID}/variants/${variant.id}`
+            let request = ''
+            // const tempVariant = {content:variant.content}
+            request = genericAPIReqPut(requestURL, {variant:variant})
+            apiRequests.push(request)
+            // test bluebird
+          })
+          debug && console.log("attempting to Promise.map apiRequests: ", apiRequests)
+          // use Promise.map for concurrency http://bluebirdjs.com/docs/api/promise.map.html
+          Promise.map(apiRequests, function(data){
+            debug && console.log("Inside of bluebird, returned data: ", data)
+            // need to mark the item as updated
+            // debug && console.log("updating displayMacros")
+            debug && console.log("updating displayVariants")
+            debug && console.log("original variant was: ", data.variant)
+            updateStatusNew(data.variant, null, 'success', 'dynamic')
+            // displayItems(macros, 'title', '#results', true)
+
+          }, {concurrency:1})
+          .then(()=>{
+            debug && console.log("done updating variants")
+            getAllDynamicContentAPI()
+            .then(refreshedDynamicItems=>{
+              debug && console.log("refreshed dynamic content items: ", refreshedDynamicItems.items)
+              allDynamicItems = refreshedDynamicItems.items 
+              // update csv status if it was a csv upload event - can promisify this function and bring up one level
+              // if(csvUploadDirty){
+              //   uploadMacroCSVStatus.val('Uploaded')
+              //   csvUploadDirty = false
+              // }
+            })
+            debug && console.log("analytics for apiRequests: ", apiRequests)
+            return updateAnalytics(apiRequests)
+            .then(data=>{
+              debug && console.log("updated analytics for dynamic item updates")
+            })
+          })
+        }
+      })
+    }
+
+    // update analytics
+    function updateAnalytics(requests){
+      return new Promise((resolve, reject)=>{
+
+        const jsonUploadData = JSON.stringify({count:requests.length, account:'!{account}'})
+        debug && console.log("json data: ", jsonUploadData)
+        // TODO: update with different dev production url
+        const APIReq = {
+            url: 'https://!{baseURL}.herokuapp.com/api/analytics',
+            type: 'POST',
+            dataType: 'json',
+            data:jsonUploadData,
+            contentType:'application/json',
+            httpCompleteResponse:true 
+        }
+        // no filter for POST atm
+        debug && console.log("api POST request to: ", APIReq.url)
+        client.request(APIReq)
+        .then(respData=>{
+          debug && console.log("got the data from analytics API: ", APIReq.url)
+          debug && console.log(respData)
+          // debug && console.log("respData.responseJSON", respData.responseJSON)
+          // const parsedData = JSON.parse(respData.responseJSON)
+          // debug && console.log("parsed data: ", parsedData)
+          // zendesk may auto parse JSON
+          debug && console.log("analytics update success: ", respData.responseJSON.success)
+          // append macro so its accessible on cb
+          resolve(respData)
+        })
+        .catch(err=>{
+          debug && console.log("POST API Request Error", err)
+          reject(err)
+        })
+      })
+    }
+
+    // macrosLength can also be for dynamic content variant.length
+    function enoughUpdatesRemaining(macrosLength){
+      return new Promise((resolve, reject)=>{
+        analyticsPOST('enoughUpdates', {account:'!{account}', toUpdate:macrosLength})
+        .then(data=>{
+          debug && console.log('enoughUpdates data: ', data)
+          if(data.responseJSON && data.responseJSON.success){
+            resolve({success:true})
+          }else{
+            debug && console.log('returning updatesremaining without success macro or dynamic')
+            resolve({updatesRemaining:data.responseJSON.updatesRemaining})
+          }
+        })
+      })
+    }
+
+    function analyticsPOST(endpoint, payload){
+      return new Promise((resolve, reject)=>{
+        const jsonUploadData = JSON.stringify(payload)
+        debug && console.log("json data: ", jsonUploadData)
+        // TODO: update with different dev production url
+        const APIReq = {
+          url: 'https://!{baseURL}.herokuapp.com/api/analytics/'+endpoint,
+          type: 'POST',
+          dataType: 'json',
+          data:jsonUploadData,
+          contentType:'application/json',
+          httpCompleteResponse:true 
+        }
+
+        debug && console.log("api POST request to: ", APIReq.url)
+        client.request(APIReq)
+        .then(respData=>{
+          debug && console.log("got the data from analytics API: ", APIReq.url)
+          debug && console.log(respData)
+          debug && console.log("analytics update success: ", respData.responseJSON.success)
+          resolve(respData)
+        })
+        .catch(err=>{
+          debug && console.log("POST API Request Error", err)
+          reject(err)
+        })
+        
       })
     }
 
@@ -794,11 +1111,15 @@ block content
     const replaceText = $('#replaceText')
     const replaceWordOriginal = $('#replaceWordOriginal')
     const replaceWordNew = $('#replaceWordNew')
+    const notEnoughUpdatesP = $('#not-enough-updates')
+    const updatesRemainingMessage = $('#updates-remaining-message')
+    const navToPurchaseUpdatesA = $('#nav-to-purchase-updates') 
     const prefixID = 'macro-result-'
     let isCaseSensitive = false
     let isReplaceWord = false
     let csvUploadDirty = false
     let currentLookup = null
+    let customCurrentTitle = null
     let replaceLookup = null
     let resultMacros = []
 
@@ -815,7 +1136,7 @@ block content
       'Description':{api:'text', id:'description', meta:true, metaField:'description'},
       Brand: {api:'brands', title:'name', id:'brand_id'},
       Form: {api:'ticket_forms', title:'name', id:'ticket_form_id'},
-      Group: {api:'groups', title:'name', id:'group_id', meta:true},
+      Group: {api:'groups', title:'name', id:'group_id'},
       'Group Permission': {api:'hardcoded', title:'name', id:'group_permissions', meta:true},
       Assignee: {api:'users', title:'name', filter:'role[]=admin&role[]=agent', id:'assignee_id'},
       'Add CC': {api:'users', title:'name', filter:'role[]=admin&role[]=agent', id:'cc'},
@@ -853,6 +1174,7 @@ block content
       lookupKey = $(this).val()
       lookup = lookups[$(this).val()]
       currentLookup = $(this).val()
+      customCurrentTitle = $(this).children('option:selected').text()
       const endpoint = lookup.api
 
       // reset results
@@ -989,7 +1311,7 @@ block content
         replaceSelectValue.hide()
         const replacdeText = $('#replaceText')
         replaceText.show()
-        disableReplaceText(false)
+        disableReplaceText(false, 'macro')
         checkReplaceWordWrapper.show()
         checkReplaceWordWrapperLabel.removeClass('is-hidden')
       }else if(endpoint == 'custom'){
@@ -1000,7 +1322,7 @@ block content
         replaceWordWrapper.hide()
         isReplaceWord = false // disable replaceword
         // replaceText.prop('disable', false)
-        disableReplaceText(false)
+        disableReplaceText(false, 'macro')
         replaceSelectValue.find('option').remove()
 
         if(lookup.type == 'checkbox'){
@@ -1021,7 +1343,7 @@ block content
         replaceWordWrapper.hide()
         isReplaceWord = false // disable replaceword
         // replaceText.prop('disable', false)
-        disableReplaceText(false)
+        disableReplaceText(false, 'macro')
         replaceSelectValue.find('option').remove()
         debug && console.log("doing a switch on lookup: ", lookupKey)
         // DRY this needs to be functionalized
@@ -1104,7 +1426,7 @@ block content
     function filterMacros(key, value, isText){
       debug && console.log("------")
       debug && console.log("inside of filterMacros")
-      debug && console.log(`Matches for key(field): ${key} with value ${value}`)
+      debug && console.log(`Matches for key(field): ${key} for value ${value}`)
       const matchedMacros = []
       const tempMacros = allMacros.slice()
       tempMacros.forEach(macro=>{
@@ -1159,12 +1481,14 @@ block content
     }
 
 
+    // NOTE: currently may only support single macro unless resetting to default
     function updateMacroStatusNew(macro, macros, status){
       debug && console.log("inside updateMacroStatus")
       const prefixID = 'macro-result-'
       const statusImages = {
         'unsent':"https://img.icons8.com/color/16/000000/sort-right.png",
         'sending':"https://img.icons8.com/color/16/000000/synchronize.png",
+        'error':"https://img.icons8.com/color/16/000000/error.png",
         'success':"https://img.icons8.com/color/16/000000/ok.png",
       }
 
@@ -1379,11 +1703,11 @@ block content
         debug && console.log("hiding replace word")
         replaceWordWrapper.hide()
         // replaceText.prop('disable', false)
-        disableReplaceText(false)
+        disableReplaceText(false, 'macro')
       }else{
         debug && console.log("showing replace word")
         replaceWordWrapper.show()
-        disableReplaceText(true)
+        disableReplaceText(true, 'macro')
         // replaceText.prop('disable', true)
       }
       // debug && console.log("actionquerytext dispatch event")
@@ -1458,7 +1782,7 @@ block content
         debug && console.log("use the text value")
         tempValue = replaceText.val()
       }
-      debug && console.log(`replace value: ${tempValue} with lookup.id ${lookup.id}`)
+      debug && console.log(`replace value: ${tempValue} for lookup.id ${lookup.id}`)
       const newMacros = macros.slice()
       debug && console.log("newMacros: ", newMacros)
 
@@ -1484,7 +1808,7 @@ block content
         }else if(lookup.meta){
           // meta fields title, active, description
           if(isReplaceWord && (lookup.metaField == 'title' || lookup.metaField == 'description')){
-            macro[lookup.metaField] = replaceWordInstances(macro[lookup.metaField], replaceWordNew.val())
+            macro[lookup.metaField] = replaceWordInstances(macro[lookup.metaField], 'macro')
           }else{
             macro[lookup.metaField] = tempValue
           }
@@ -1498,11 +1822,11 @@ block content
               if(action.field == field){
                 found = true
                 // action.value = tempValue
-                action.value = replaceWordInstances(action.value, replaceWordNew.val())
+                action.value = replaceWordInstances(action.value, 'macro')
               }else if(action.field == 'comment_value' && field == 'comment_value_html'){
                 // special case for comments that can be 2 fields
                 found = true
-                action.value = replaceWordInstances(action.value, replaceWordNew.val())
+                action.value = replaceWordInstances(action.value, 'macro')
                 // action.value = tempValue
               }
             }else{
@@ -1529,7 +1853,12 @@ block content
       // update matched column name
       const matchTH = $('#macro-results-match-th')
       debug && console.log("going to update: ", matchTH)
-      matchTH.html('Matched '+currentLookup)
+      if(currentLookup.indexOf('custom_fields') != -1){
+        const tempTitle = customCurrentTitle.replace('Custom: ', '')
+        matchTH.html('Matched '+tempTitle)
+      }else{
+        matchTH.html('Matched '+currentLookup)
+      }
     }
 
     // build payload for PUT to zendesk to update macros bulk
@@ -1543,14 +1872,15 @@ block content
       return macroPayload
     }
 
-    function disableReplaceText(bool){
+    function disableReplaceText(bool, type){
+      const tempReplaceText = type == 'macro' ? replaceText : replaceDynamicText
       if(bool){
         // replaceText.addClass('c-txt__input.is_disabled c-txt__input[disabled]')
         // replaceText.addClass('is_disabled')
-        replaceText.prop('disabled', true)
+        tempReplaceText.prop('disabled', true)
       }else{
         // replaceText.removeClass('is_disabled')
-        replaceText.prop('disabled', false)
+        tempReplaceText.prop('disabled', false)
         // replaceText.removeClass('c-txt__input.is_disabled c-txt__input[disabled]')
       }
       // set class
@@ -1560,7 +1890,7 @@ block content
 
     // utility code
     function checkMatchStr(big, sub){
-      debug && console.log(`comparing big:${big} to sub:${sub} isCaseSensitive`, isCaseSensitive)
+      // debug && console.log(`comparing big:${big} to sub:${sub} isCaseSensitive`, isCaseSensitive)
       let match = false
       if(isCaseSensitive){
         if(big.indexOf(sub) != -1){
@@ -1578,11 +1908,13 @@ block content
 
     }
 
-    function replaceWordInstances(fieldValue){
+    function replaceWordInstances(fieldValue, type){
+      const originalWord = type=='macro' ? replaceWordOriginal.val() : replaceDynamicWordOriginal.val()
+      const newWord = type=='macro' ? replaceWordNew.val() : replaceDynamicWordNew.val()
       debug && console.log("original field value: ", fieldValue)
-      debug && console.log("replaceWordOriginal: ", replaceWordOriginal.val())
-      const regex = new RegExp(replaceWordOriginal.val(), 'g')
-      const newValue = fieldValue.replace(regex, replaceWordNew.val())
+      debug && console.log(type + " replaceWordOriginal: ", originalWord)
+      const regex = new RegExp(originalWord, 'g')
+      const newValue = fieldValue.replace(regex, newWord)
       debug && console.log("new field value: ", newValue)
       return newValue
     }
@@ -1660,33 +1992,113 @@ block content
     const dynamicCheckAll = $('#dynamic-check-all')
     const prefixDynamicID = 'dynamic-result-'
 
+    const updateDynamicButton = $('#updateDynamicButton')
+
 
     // const dynamicQueryText = $('#dynamicQueryText')
 
+    const replaceDynamicWordNew = $('#replaceDynamicWordNew')
+    const replaceDynamicWordOriginal = $('#replaceDynamicWordOriginal')
+    const notEnoughUpdatesDynamicP = $('#not-enough-updates-dynamic')
+    const updatesRemainingMessageDynamic = $('#updates-remaining-message-dynamic')
+    const navToPurchaseUpdatesDynamicA = $('#nav-to-purchase-updates-dynamic') 
+    const checkDynamicReplaceWord = $('#checkDynamicReplaceWord')
+     
+
     const dynamicType = $('#dynamicType')
     const dynamicQueryText = $('#dynamicQueryText')
+    const replaceDynamicText = $('#replaceDynamicText')
     const checkDynamicCaseSensitive = $('#checkDynamicCaseSensitive')
 
     replaceDynamicWordWrapper.hide()
+
+    let isDynamicReplaceWord = false
     
+    const dynamicPrefixID = 'dynamic-result-'
     let resultDynamicItems = []
     let isDynamicTitle = true
 
+
     // Dynamic Content js
-    function getAllDynamicContentAPI(){
+    function getAllDynamicContentAPI(previousResults, nextPageURL){
+      // start with previous results if this is a new call
+      debug && console.log("inside getalldynamicapi")
+      const tempAllDynamicItems = previousResults ? previousResults : {items:[]}
       return new Promise((resolve, reject)=>{
         const dynamicContentReq = {
             url: '/api/v2/dynamic_content/items.json',
             type: 'GET',
             dataType: 'json'
         }
+        if(nextPageURL){
+          const tempNextPage = nextPageURL.split('page=')[1]
+          dynamicContentReq.url += '?page='+tempNextPage
+        }
+        debug && console.log("dynamicContentReq: ", dynamicContentReq)
         client.request(dynamicContentReq)
         .then(data=>{
-          debug && console.log("got the data from dynamicContent API")
+          debug && console.log("got the data from dynamic content API")
           debug && console.log(data)
-          resolve(data)
+
+          tempAllDynamicItems.items = tempAllDynamicItems.items.concat(data.items)
+          // continue to add new results until no more pagination
+          if(data.next_page != null){ // should fail if null
+            // get more results
+            debug && console.log('getting more dynamic content items')
+            getAllDynamicContentAPI(tempAllDynamicItems, data.next_page)
+            .then(data=>{
+              resolve(data)
+            })
+          }else{
+            debug && console.log('no more dynamic content items')
+            resolve(tempAllDynamicItems)
+          }
         })
       })
+    }
+
+    function dynamicContentAPIPOST(count){
+      if(count == undefined){
+        return
+      }
+      return new Promise((resolve, reject)=>{
+        const item = {}
+        item.name = 'Dynamic Content Mass Upload ' + count
+        item.variants = [{locale_id:1, default:true, content:'Mass Upload variant en-US '+count}]
+        const payload = {item}
+        const jsonUploadData = JSON.stringify(payload)
+        const dynamicContentReq = {
+          url: '/api/v2/dynamic_content/items.json',
+          type: 'POST',
+          dataType: 'json',
+          data:jsonUploadData,
+          contentType:'application/json',
+          httpCompleteResponse:true 
+        }
+        debug && console.log("POST dynamicContentReq: ", dynamicContentReq)
+        client.request(dynamicContentReq)
+        .then(data=>{
+          debug && console.log("got the data from POST dynamic content API")
+          debug && console.log(data)
+        })
+      })
+    }
+
+    function dynamicContentAPIPOSTAmount(amountToCreate, currentItemCount, delay){
+      amountToCreate--
+      if(amountToCreate< 0)
+        return
+      setTimeout(function(){
+
+        // send current request
+        dynamicContentAPIPOST(currentItemCount)
+
+        currentItemCount++
+        // send next request
+        dynamicContentAPIPOSTAmount(amountToCreate, currentItemCount, delay)
+
+      }, delay)
+
     }
 
     // still needs DRY pass with actionQueryText, some similar logic
@@ -1701,8 +2113,8 @@ block content
       // const tempLookupID = lookups[currentLookup].id
       const tempLookupID = 'not used in dynamic content yet'
       resultDynamicItems = filterDynamicItems(tempLookupID, selectedVal, isDynamicTitle)
-      debug && console.log("filtered macros: ", resultMacros)
-      for(i = 0; i < resultMacros.length; i++){
+      debug && console.log("filtered resultDynamicItems: ", resultDynamicItems)
+      for(i = 0; i < resultDynamicItems.length; i++){
         resultDynamicItems[i].listPos = i
         resultDynamicItems[i].updateStatus = 'unsent'
       }
@@ -1713,24 +2125,24 @@ block content
       debug && console.log("after updateStatusNew")
       return // return early for now
 
-      // make dummy request to server
-      if(resultMacros.length > 0){
-        // const requestURL = 'macros/'+tempMacros[0].id        
-        // const requestURL = 'macros/update_many'       
-        // debug && console.log("making demo PUT request to: ", requestURL)
-        // debug && console.log("payload: ", {macro:{title:'New Updated Via API'}})
-        // const macroPayload = bulkMacroPayloadBuilder(tempMacros.slice())
-        // genericAPIReqPut(requestURL, {macro:tempMacros[0]})
-        // genericAPIReqPut(requestURL, {macro:{title:'New Updated Via API'}})
-        // debug && console.log("updating macros with macroPayload: ", macroPayload)
-        // genericAPIReqPut(requestURL, macroPayload)
-        // the update_many endpoint doesn't support changing many fields
-        // genericAPIReqPut(requestURL, {macros:[{id:360074290434, title:"New Testing Macro udpated via API"}]})
-        // send X API requests at a time
-        // disable send requests for now
-        // debug && console.log("calling sendManyAPIRequests")
-        // sendManyAPIRequests(resultMacros)
-      }
+      // // make dummy request to server
+      // if(resultMacros.length > 0){
+      //   // const requestURL = 'macros/'+tempMacros[0].id        
+      //   // const requestURL = 'macros/update_many'       
+      //   // debug && console.log("making demo PUT request to: ", requestURL)
+      //   // debug && console.log("payload: ", {macro:{title:'New Updated Via API'}})
+      //   // const macroPayload = bulkMacroPayloadBuilder(tempMacros.slice())
+      //   // genericAPIReqPut(requestURL, {macro:tempMacros[0]})
+      //   // genericAPIReqPut(requestURL, {macro:{title:'New Updated Via API'}})
+      //   // debug && console.log("updating macros with macroPayload: ", macroPayload)
+      //   // genericAPIReqPut(requestURL, macroPayload)
+      //   // the update_many endpoint doesn't support changing many fields
+      //   // genericAPIReqPut(requestURL, {macros:[{id:360074290434, title:"New Testing Macro udpated via API"}]})
+      //   // send X API requests at a time
+      //   // disable send requests for now
+      //   // debug && console.log("calling sendManyAPIRequests")
+      //   // sendManyAPIRequests(resultMacros)
+      // }
     })
 
     // set the isDynamicTitle to true or false
@@ -1743,26 +2155,6 @@ block content
       debug && console.log("isDynamicTitle is now: ", isDynamicTitle)
     })
 
-    // need to update/create dynamic status update function first
-    dynamicCheckAll.change(function(){
-      debug && console.log("check all clicked, eventually check/uncheck all checkboxes")
-      debug && console.log("check all .is(:checked) ", checkAll.is(':checked'))
-      // if(checkAll.is(':checked')){
-      resultDynamicItems.forEach(item=>{
-        // set the value to checked or unchecked
-        const toUpdateDiv = $('#'+prefixID+item.listPos)
-        debug && console.log("dynamic content status going to update: ", toUpdateDiv)
-        const tdToUpdate = $(toUpdateDiv.find('td')[1]) // future version maybe not needed
-        debug && console.log("tdToUpdate", tdToUpdate)
-        const tempCheckbox = $(tdToUpdate.find('input')[0]) 
-        debug && console.log("input.checkbox to update", tempCheckbox)
-        tempCheckbox.prop('checked', checkAll.is(':checked'))
-        debug && console.log("tempCheckbox .is(:checked) ", tempCheckbox.is(':checked'))
-        // statusImage.attr('src', statusImages[status])
-        // const temp
-      })
-      // }
-    })
 
     // need to have title and variant be searchable, key currently not used
     // currently returns a list of variants with added itemID and itemName 
@@ -1823,13 +2215,14 @@ block content
       const statusImages = {
         'unsent':"https://img.icons8.com/color/16/000000/sort-right.png",
         'sending':"https://img.icons8.com/color/16/000000/synchronize.png",
+        'error':"https://img.icons8.com/color/16/000000/error.png",
         'success':"https://img.icons8.com/color/16/000000/ok.png",
       }
 
       if(item){
         // find the item line
         // debug && console.log("updating status for item: ", item)
-        debug && console.log(`updating status for type: ${type} item: ${item}`)
+        debug && console.log(`updating status for type: ${type} item:,`, item)
         const toUpdateDiv = $('#'+prefixID+item.listPos)
         debug && console.log("going to update: ", toUpdateDiv)
 
@@ -1936,100 +2329,103 @@ block content
           debug && console.log("adding stuff to itemTR and itemTBody")
           itemTBody.append(itemTR)
         })
-        
-
       }
     }
 
     function dynamicUpdaterLocal(items, field){
       // TODO: check dynamic code, this maybe not needed in dynamic code
-      // find out if its text or a drop down field
       
       // replaceSelectValue = $('#replaceSelectValue')
       // replaceText = $('#replaceText')
       let tempValue = null
 
-      // check special case then drop down or text
-      if(field == 'group_permissions'){
+      tempValue = replaceDynamicText.val()
 
-        // check if all or groups
-        tempValue = replaceSelectValue.val()
-        if(tempValue != 'All'){
-          // check that at least one group has been added
-          debug && console.log("groupTagList.children(): ", groupTagList.children())
-          if(groupTagList.children().length == 0){
-            return {error:'Please select at least one group'}
-          }
-          tempValue = []
-          groupTagList.children().each(function(){
-            const tempChild = $(this)
-            tempValue.push(tempChild.attr('data1'))
-          })
-        }
-      }else if(replaceSelectValue.is(':visible')){
-        debug && console.log("use the drop down value")
-        tempValue = replaceSelectValue.val()
-      }else{
-        debug && console.log("use the text value")
-        tempValue = replaceText.val()
-      }
-      debug && console.log(`replace value: ${tempValue} with lookup.id ${lookup.id}`)
-      const newMacros = macros.slice()
-      debug && console.log("newMacros: ", newMacros)
-      newMacros.forEach(macro=>{
-        // non field updates
-        if(field == 'group_permissions'){
-          // update restriction id and ids for group permissions
-          if(tempValue == 'All'){
-            macro.restriction = null
-          }else{
-            let firstVal = null
-            tempValue.forEach(tempV=>{
-              if(!firstVal){
-                macro.restriction.type = 'Group'
-                debug && console.log('restriction  type set to group')
-                macro.restriction = {id:tempV, ids:[]}
-                firstVal = 'done'
-              }
-              macro.restriction.ids.push(tempV)
-            })
-          }
-        }else{
-          // search for the field in actions
-          let found = false
-          macro.actions.forEach(action=>{
-            // check if just replacing word instances
-            if(isReplaceWord){
-              if(action.field == field){
-                found = true
-                // action.value = tempValue
-                action.value = replaceWordInstances(action.value, replaceWordNew.val())
-              }else if(action.field == 'comment_value' && field == 'comment_value_html'){
-                // special case for comments that can be 2 fields
-                found = true
-                action.value = replaceWordInstances(action.value, replaceWordNew.val())
-                // action.value = tempValue
-              }
-              
-            }else{
-              if(action.field == field){
-                found = true
-                action.value = tempValue
-              }else if(action.field == 'comment_value' && field == 'comment_value_html'){
-                // special case for comments that can be 2 fields
-                found = true
-                action.value = tempValue
-              }
-            }
-          })
-          if(!found){
-            // insert it
-            macro.actions.push({field, tempValue})
-          }
-        }
+      debug && console.log(`replace value: ${tempValue} for dynamicText`)
+
+      const newDynamicItems = items.slice()
+      debug && console.log("newDynamicItems: ", newDynamicItems)
+      newDynamicItems.forEach(item=>{
+        // replace
+        if(isDynamicReplaceWord)
+          item.content = replaceWordInstances(item.content, 'dynamic')
+        else
+          item.content = tempValue
       })
-      return newMacros
+      return newDynamicItems
     }
+
+
+    // need to update/create dynamic status update function first
+    dynamicCheckAll.change(function(){
+      debug && console.log("dynamic check all clicked, eventually check/uncheck all checkboxes")
+      debug && console.log("dynamic check all .is(:checked) ", dynamicCheckAll.is(':checked'))
+      // if(checkAll.is(':checked')){
+      resultDynamicItems.forEach(item=>{
+        // set the value to checked or unchecked
+        const toUpdateDiv = $('#'+dynamicPrefixID+item.listPos)
+        debug && console.log("dynamic content status going to update: ", toUpdateDiv)
+        const tdToUpdate = $(toUpdateDiv.find('td')[1]) // future version maybe not needed
+        debug && console.log("tdToUpdate", tdToUpdate)
+        const tempCheckbox = $(tdToUpdate.find('input')[0]) 
+        debug && console.log("input.checkbox to update", tempCheckbox)
+        tempCheckbox.prop('checked', dynamicCheckAll.is(':checked'))
+        debug && console.log("tempCheckbox .is(:checked) ", tempCheckbox.is(':checked'))
+        // statusImage.attr('src', statusImages[status])
+        // const temp
+      })
+      // }
+    })
+
+    checkDynamicReplaceWord.change(function(){
+      isDynamicReplaceWord = !isDynamicReplaceWord
+      debug && console.log("replace word wrapper show ")
+      // actionQueryText.trigger('keyup')
+      if(replaceDynamicWordWrapper.is(':visible')){
+        debug && console.log("hiding replace word")
+        replaceDynamicWordWrapper.hide()
+        // replaceText.prop('disable', false)
+        disableReplaceText(false, 'dynamic')
+      }else{
+        debug && console.log("showing replace word")
+        replaceDynamicWordWrapper.show()
+        disableReplaceText(true, 'dynamic')
+        // replaceText.prop('disable', true)
+      }
+      // debug && console.log("actionquerytext dispatch event")
+      // actionQueryText.dispatchEvent(new Event('change'))
+    })
+
+    updateDynamicButton.click(function(){
+      debug && console.log("dynamic update button clicked")
+      // find out which macros are selected send them to udpate
+      const checkboxes = []
+      const dynamicsToUpdate = []
+      $('#dynamic-results tbody').find(':checkbox:checked').each(function(){
+        const dynamicPos = $(this).val()
+        debug && console.log("this is checked: ", $(this).val())
+        updateStatusNew(resultDynamicItems[dynamicPos], null, 'sending', 'dynamic') // result macros from last filter
+        // send actual update
+        dynamicsToUpdate.push(resultDynamicItems[$(this).val()])
+      }) 
+      debug && console.log($('dynamic').find('input'))
+      // debug && console.log($('macro-results'))
+      debug && console.log("done checking checkboxes, sending update request")
+      debug && console.log("going to update variant text")
+      const localUpdatedDynamicItems = dynamicUpdaterLocal(dynamicsToUpdate, 'content')
+      debug && console.log("updated local dynamic items: ", localUpdatedDynamicItems)
+
+      // alert('test')
+      // return early if error
+      if(localUpdatedDynamicItems.error){
+        return alert('Error: ', localUpdatedDynamicItems.error)
+      }
+
+      // update macros on zendesk
+      debug && console.log("going to send dynamic items for update: ", localUpdatedDynamicItems)
+      // sendManyAPIRequests(localUpdatedDynamicItems)
+      sendManyVariantUpdates(localUpdatedDynamicItems)
+    })
 
     // update to use a list of groups rather than API endpoint
     jQuery.typeahead({
@@ -2068,12 +2464,49 @@ block content
       }
     })
 
+    //buybutton clicked
+    function buyButton(){
+
+      debug && console.log("buy button clicked checking for new orders")
+      window.open("https://!{baseURL}.herokuapp.com/stripe/purchase?subdomain="+subdomain) 
+      // open new window
+      checkForNewOrders()
+    }
+
+    // check for new orders
+    function checkForNewOrders(){
+
+      const checkOrdersStart = new Date()
+      // check every 10 seconds for five minutes for new orders
+      let checkOrdersInterval = setInterval(function(){
+        // if its been x minutes stop checking
+        if(checkOrdersStart.getTime() + 60000*5 < Date.now()){
+          debug && console.log("No longer checking for new orders")
+          clearInterval(checkOrdersInterval)
+        }
+
+        debug && console.log('getting new orders')
+        analyticsPOST('orders', {account:'!{account}'})
+        .then(data=>{
+          debug && console.log('orders analytics success: ', data)
+          if(data.responseJSON && data.responseJSON.updatesRemaining){
+            $('#tab3').text(`Updates Remaining - ${data.responseJSON.updatesRemaining}`)
+            successModal()
+          }else{
+            debug && console.log('data.responseJSON doesn\'t exist', data.responseJSON)
+          }
+        })
+      }, 10000)
+    }
+
 
     // tab/panel code
     const tab1 = $('#tab1')
     const tab2 = $('#tab2')
+    const tab3 = $('#tab3')
     const panel1 = $('#panel1')
     const panel2 = $('#panel2')
+    const panel3 = $('#panel3')
 
     let activePanel = panel1
     let activeTab = tab1
@@ -2083,11 +2516,20 @@ block content
       tab1.addClass('is-selected')
       // unhighlight
       tab2.removeClass('is-selected')
+      tab3.removeClass('is-selected')
     })
     tab2.click(function(){
       activateTab(this)
       tab2.addClass('is-selected')
       // unhighlight
+      tab1.removeClass('is-selected')
+      tab3.removeClass('is-selected')
+    })
+    tab3.click(function(){
+      activateTab(this)
+      tab3.addClass('is-selected')
+      // unhighlight
+      tab2.removeClass('is-selected')
       tab1.removeClass('is-selected')
     })
 
@@ -2109,6 +2551,9 @@ block content
           break
         case 'panel2':
           activePanel = panel2
+          break
+        case 'panel3':
+          activePanel = panel3
           break
       }
       activePanel.attr('aria-hidden', false)
@@ -2205,11 +2650,13 @@ block content
           }else{
             // check for actions, add to temp all actions field
             if(item[8] != '' && item[9] != '' && item[8] != null && item[9] != null ){
-              tempAllMacros[currentMacroNum][actionsPos].push({action:item[8], value:item[9]})
+              // tempAllMacros[currentMacroNum][actionsPos].push({action:item[8], value:item[9]})
+              tempAllMacros[currentMacroNum][actionsPos].push({field:item[8], value:item[9]})
             }
           }
         })
         debug && console.log('tempAllMacros: ', tempAllMacros) 
+
 
         // if no optional fields are set may not show up in csv
         // keep actions__field/value until support for group ids/infinite columns is added
@@ -2257,6 +2704,7 @@ block content
           for(i = 0; i < macro.length; i++){
             if(fieldMappings[i]){
               tempMacro[fieldMappings[i]] = macro[i]
+              debug && console.log(`macro[${i}]: ${macro[i]}, fieldMapping: ${fieldMappings[i]}`) 
               // make correct type
               // boolean
               if(fieldMappings[i] == 'active'){
@@ -2316,7 +2764,43 @@ block content
     })
     // on file select - check csv and parse into string and check success parse csv
 
+    function successModal(){
+      debug && console.log('opening new zaf v2 modal')
+      client.invoke('instances.create',{
+        location:'modal',
+        // url:'assets/success-modal.html'
+        url:'https://!{baseURL}.herokuapp.com/assets/success-modal.html'
+      })
+      .then(data=>{
+        debug && console.log('test modal')
+      })
+    }
 
+    function displayNotEnoughUpdates(updatesSelected, updatesRemaining, itemType){
+      // currently used for both macro and dynamic
+
+      if(itemType == 'macro'){
+        updatesRemainingMessage.html(`You have <b>${updatesRemaining}</b> updates remaining but selected <b>${updatesSelected}</b> updates`)
+        notEnoughUpdatesP.show()
+      }else{
+        notEnoughUpdatesDynamicP.show()
+        updatesRemainingMessageDynamic.html(`You have <b>${updatesRemaining}</b> updates remaining but selected <b>${updatesSelected}</b> updates`)
+      }
+
+      // show not enough updates message
+    }
+
+
+    navToPurchaseUpdatesA.click(function(){
+      debug && console.log('navigating to purchase more udpates')
+      tab3.click()
+    })
+
+    navToPurchaseUpdatesDynamicA.click(function(){
+      debug && console.log('navigating to purchase more udpates')
+      tab3.click()
+    })
+    
 
     // OLD CODE:
     // update is currently single only, creation is macros array
