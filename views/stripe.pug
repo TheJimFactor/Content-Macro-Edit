@@ -1,0 +1,108 @@
+extends index.pug
+block content
+  script(src='https://js.stripe.com/v3')
+
+  div(class="container-fluid"
+    style="margin-top:10px;")
+
+    div(class="row")
+      div(class="col-md-4")
+        h2(style="font-size:2em; margin-bottom:10px") Purchase More Updates
+    div(class="row")
+      div(class="col-md-4")
+
+        p(style="margin-bottom:10px;") Buy using Stripe
+    div(class="row")
+      div(class="col-md-4")
+        input(type='button',
+          style="background-color:#6772E5;color:#FFF;padding:8px 12px;border:0;border-radius:4px;font-size:1em;margin-bottom:10px; cursor:pointer;",
+          id="checkout-button-sku_"+stripeSKU,
+          value="Checkout 50 Updates - $5",
+          role="link") 
+    div(class="row")
+      div(class="col-md-4")
+        input(type='button',
+          style="background-color:#6772E5;color:#FFF;padding:8px 12px;border:0;border-radius:4px;font-size:1em;margin-bottom:10px; cursor:pointer;",
+          id="checkout-button-sku_"+stripeSKU25,
+          value="Checkout 250 Updates - $25",
+          role="link") 
+
+    div(class="row")
+      div(class="col-md-4")
+
+        div(class="c-callout")
+          strong(class="c-callout__title")
+            span(dir="ltr") You will be redirected to Stripe for the purchase
+          p(class="c-callout__paragraph") Afterwards you can go back to Zendesk to see your newly added updates
+
+
+
+
+
+
+  div(id='error-message')
+
+  script(type='text/javascript').
+
+    (function() {
+      var stripe = Stripe('pk_!{stripePK}');
+      // console.log("view stripe success payload: ", request.payload)
+
+      var checkoutButton = document.getElementById('checkout-button-sku_!{stripeSKU}');
+      checkoutButton.addEventListener('click', function () {
+        // metadata
+        // stripe.payment_intent_data = {metadata:{subdomain:'!{subdomain}'}}
+        // When the customer clicks on the button, redirect
+        // them to Checkout.
+        stripe.redirectToCheckout({
+          items: [{sku: 'sku_!{stripeSKU}', quantity: 1 }],
+
+          // Do not rely on the redirect to the successUrl for fulfilling
+          // purchases, customers may not always reach the success_url after
+          // a successful payment.
+          // Instead use one of the strategies described in
+          // https://stripe.com/docs/payments/checkout/fulfillment
+          successUrl: window.location.protocol + '//!{baseURL}.herokuapp.com/stripe/success',
+          cancelUrl: window.location.protocol + '//!{baseURL}.herokuapp.com/stripe/canceled',
+          clientReferenceId: '!{subdomain}'
+        })
+        .then(function (result) {
+          if (result.error) {
+            // If `redirectToCheckout` fails due to a browser or network
+            // error, display the localized error message to your customer.
+            var displayError = document.getElementById('error-message');
+            displayError.textContent = result.error.message;
+          }
+        });
+      });
+
+      // additional checkout option
+      var checkoutButton25 = document.getElementById('checkout-button-sku_!{stripeSKU25}');
+      checkoutButton25.addEventListener('click', function () {
+        // metadata
+        // stripe.payment_intent_data = {metadata:{subdomain:'!{subdomain}'}}
+        // When the customer clicks on the button, redirect
+        // them to Checkout.
+        stripe.redirectToCheckout({
+          items: [{sku: 'sku_!{stripeSKU25}', quantity: 1 }],
+
+          // Do not rely on the redirect to the successUrl for fulfilling
+          // purchases, customers may not always reach the success_url after
+          // a successful payment.
+          // Instead use one of the strategies described in
+          // https://stripe.com/docs/payments/checkout/fulfillment
+          successUrl: window.location.protocol + '//!{baseURL}.herokuapp.com/stripe/success',
+          cancelUrl: window.location.protocol + '//!{baseURL}.herokuapp.com/stripe/canceled',
+          clientReferenceId: '!{subdomain}'
+        })
+        .then(function (result) {
+          if (result.error) {
+            // If `redirectToCheckout` fails due to a browser or network
+            // error, display the localized error message to your customer.
+            var displayError = document.getElementById('error-message');
+            displayError.textContent = result.error.message;
+          }
+        });
+      });
+    })();
+
